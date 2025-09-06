@@ -32,6 +32,14 @@ else
     exit 1
 fi
 
+echo "⚙️  Applying OS tweaks..."
+if [[ -x "${SCRIPT_DIR}/setup/os_tweaks.sh" ]]; then
+    "${SCRIPT_DIR}/setup/os_tweaks.sh"
+else
+    echo "❌ OS tweaks script not found or not executable"
+    exit 1
+fi
+
 echo "📦 Installing applications and packages..."
 if [[ -x "${SCRIPT_DIR}/setup/my_installs.sh" ]]; then
     "${SCRIPT_DIR}/setup/my_installs.sh"

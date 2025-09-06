@@ -36,20 +36,16 @@ My personal scripts for setting up and maintaining a PopOS or Debian Linux deskt
 
 After running the bootstrap:
 
-1. **Set Zsh as default shell**:
-   ```bash
-   chsh -s $(which zsh)
-   ```
-
-2. **Restart your session** to apply all changes
-
-3. **Configure Git**:
+**Configure Git**:
    ```bash
    git config --global user.name "Your Name"
    git config --global user.email "your.email@example.com"
    ```
 
-4. **Set up SSH key** for GitHub:
+**Set up SSH key** for GitHub:
    ```bash
    ssh-keygen -t ed25519 -C "your.email@example.com"
+   # add it to ssh agent
+   eval "$(ssh-agent -s)"
+   ssh-add ~/.ssh/id_ed25519
    ```

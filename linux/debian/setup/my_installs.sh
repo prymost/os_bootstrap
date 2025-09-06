@@ -12,6 +12,8 @@ CLI_TOOLS=(
     "direnv"
     "micro"
     "awscli"
+    "xsel"
+    "pipx"
 )
 
 DEVELOPMENT_TOOLS=(
@@ -98,7 +100,7 @@ if ! dpkg -l | grep -q synology-drive-client; then
 
     # Download the latest Synology Drive Client .deb file
     echo "🔄 Downloading Synology Drive Client..."
-    SYNOLOGY_URL="https://global.download.synology.com/download/Utility/SynologyDriveClient/3.5.0-15724/Ubuntu/Installer/x86_64/synology-drive-client-15724.x86_64.deb"
+    SYNOLOGY_URL="https://global.synologydownload.com/download/Utility/SynologyDriveClient/3.5.2-16111/Ubuntu/Installer/synology-drive-client-16111.x86_64.deb"
     wget -q -O synology-drive-client.deb "$SYNOLOGY_URL"
 
     if [[ -f synology-drive-client.deb ]]; then
@@ -122,37 +124,30 @@ fi
 
 # Install Logseq
 echo "📦 Installing Logseq..."
-if ! command -v logseq &> /dev/null; then
-    # Create temp directory for download
-    TEMP_DIR=$(mktemp -d)
-    cd "$TEMP_DIR"
+if command -v flatpak &> /dev/null
+then
+    echo "Flatpak is installed. Proceeding with Logseq installation..."
 
-    # Download Logseq .deb file (latest version)
-    echo "🔄 Downloading Logseq..."
-    LOGSEQ_URL="https://github.com/logseq/logseq/releases/latest/download/logseq-linux-x64.deb"
-    wget -q -O logseq.deb "$LOGSEQ_URL"
+    # Add the Flathub repository if it's not already added
+    echo "Adding Flathub repository..."
+    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
-    if [[ -f logseq.deb ]]; then
-        echo "📦 Installing Logseq..."
-        sudo dpkg -i logseq.deb
-        # Fix any dependency issues
-        sudo apt-get install -f -y -qq
-        echo "✅ Logseq installed"
-    else
-        echo "❌ Failed to download Logseq"
-        echo "⚠️  Please download manually from: https://github.com/logseq/logseq/releases"
-    fi
+    # Install Logseq from Flathub non-interactively
+    echo "Installing Logseq..."
+    flatpak install --noninteractive flathub com.logseq.Logseq
 
-    # Clean up temp directory
-    cd -
-    rm -rf "$TEMP_DIR"
+    echo "Logseq has been successfully installed."
 else
-    echo "✅ Logseq already installed"
+    echo "Flatpak is not installed on your system."
+    echo "To install Flatpak, run: sudo apt install flatpak"
+    echo "After installation, run this script again."
+    exit 1
 fi
 
 # Install Calibre
 echo "📦 Installing Calibre..."
 if ! command -v calibre &> /dev/null; then
+    sudo apt-get install -y -qq libxcb-cursor0
     echo "🔄 Downloading and installing Calibre..."
     sudo -v && wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sudo sh /dev/stdin
     echo "✅ Calibre installed"
@@ -184,6 +179,8 @@ if command -v zsh &> /dev/null; then
             sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="agnoster"/' ~/.zshrc
             sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc
         fi
+        # Setting ZSH as a primary shell
+        chsh -s $(which zsh)
     else
         echo "✅ Oh My Zsh already installed"
         # Check if we should update to use shared .zshrc
@@ -197,6 +194,72 @@ if command -v zsh &> /dev/null; then
     fi
 else
     echo "⚠️  Zsh not found, skipping Oh My Zsh setup"
+fi
+
+# Install Kinto (Mac-style shortcuts for Linux)
+echo "📦 Installing Kinto..."
+if ! command -v xkeysnail &> /dev/null; then
+    echo "📦 Installing xkeysnail via pipx..."
+    pipx install xkeysnail
+    pipx ensurepath
+
+    echo "📦 Installing Kinto..."
+    /bin/bash -c "$(wget -qO- https://raw.githubusercontent.com/rbreaves/kinto/HEAD/install/linux.sh || curl -fsSL https://raw.githubusercontent.com/rbreaves/kinto/HEAD/install/linux.sh)"
+
+    # Configure Kinto with custom shortcut
+    KINTO_CONFIG="$HOME/.config/kinto/kinto.py"
+    if [[ -f "$KINTO_CONFIG" ]]; then
+        echo "🔧 Configuring Kinto shortcuts..."
+        # Replace RC-Space mapping from Alt-F1 to Super-SLASH
+        sed -i 's/K("RC-Space"): K("Alt-F1"),/K("RC-Space"): K("Super-SLASH"),/' "$KINTO_CONFIG"
+        echo "✅ Kinto configuration updated"
+    else
+        echo "⚠️  Kinto config file not found at $KINTO_CONFIG"
+        echo "⚠️  You may need to manually replace K(\"RC-Space\"): K(\"Alt-F1\"), with K(\"RC-Space\"): K(\"Super-SLASH\"), in the config"
+    fi
+
+    echo "✅ Kinto installed and configured"
+else
+    echo "✅ Kinto (xkeysnail) already installed"
+fi
+
+# Install Kitty Terminal
+echo "📦 Installing Kitty Terminal..."
+if ! command -v kitty &> /dev/null; then
+    echo "🔄 Downloading and installing Kitty..."
+    curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin
+
+    # Create ~/.local/bin directory if it doesn't exist
+    mkdir -p ~/.local/bin
+
+    # Create symbolic links to add kitty and kitten to PATH
+    echo "🔗 Creating symbolic links for kitty..."
+    ln -sf ~/.local/kitty.app/bin/kitty ~/.local/bin/kitty
+    ln -sf ~/.local/kitty.app/bin/kitten ~/.local/bin/kitten
+
+    # Create ~/.local/share/applications directory if it doesn't exist
+    mkdir -p ~/.local/share/applications
+
+    # Place the kitty.desktop file somewhere it can be found by the OS
+    echo "📝 Installing desktop files..."
+    cp ~/.local/kitty.app/share/applications/kitty.desktop ~/.local/share/applications/
+
+    # If you want to open text files and images in kitty via your file manager also add the kitty-open.desktop file
+    cp ~/.local/kitty.app/share/applications/kitty-open.desktop ~/.local/share/applications/
+
+    # Update the paths to the kitty and its icon in the kitty desktop file(s)
+    echo "🔧 Updating desktop file paths..."
+    sed -i "s|Icon=kitty|Icon=$(readlink -f ~)/.local/kitty.app/share/icons/hicolor/256x256/apps/kitty.png|g" ~/.local/share/applications/kitty*.desktop
+    sed -i "s|Exec=kitty|Exec=$(readlink -f ~)/.local/kitty.app/bin/kitty|g" ~/.local/share/applications/kitty*.desktop
+
+    # Make xdg-terminal-exec (and hence desktop environments that support it) use kitty
+    echo "⚙️  Setting kitty as default terminal..."
+    mkdir -p ~/.config
+    echo 'kitty.desktop' > ~/.config/xdg-terminals.list
+
+    echo "✅ Kitty Terminal installed and configured"
+else
+    echo "✅ Kitty Terminal already installed"
 fi
 
 echo "🧹 Cleaning up..."
