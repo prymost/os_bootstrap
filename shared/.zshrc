@@ -146,6 +146,9 @@ fi
 alias prp="pipenv run python"
 export PIPENV_VENV_IN_PROJECT=true
 
+# My desktop Linux aliases
+alias ww="cd ${HOME}/Workspace"
+
 # Hook up direnv
 eval "$(direnv hook zsh)"
 
