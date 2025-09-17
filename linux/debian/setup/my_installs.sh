@@ -13,7 +13,7 @@ CLI_TOOLS=(
     "micro"
     "awscli"
     "xsel"
-    "pipx"
+    "timeshift"
 )
 
 DEVELOPMENT_TOOLS=(
@@ -199,11 +199,6 @@ fi
 # Install Kinto (Mac-style shortcuts for Linux)
 echo "📦 Installing Kinto..."
 if ! command -v xkeysnail &> /dev/null; then
-    echo "📦 Installing xkeysnail via pipx..."
-    pipx install xkeysnail
-    pipx ensurepath
-
-    echo "📦 Installing Kinto..."
     /bin/bash -c "$(wget -qO- https://raw.githubusercontent.com/rbreaves/kinto/HEAD/install/linux.sh || curl -fsSL https://raw.githubusercontent.com/rbreaves/kinto/HEAD/install/linux.sh)"
 
     # Configure Kinto with custom shortcut
