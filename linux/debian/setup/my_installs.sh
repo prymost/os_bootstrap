@@ -14,6 +14,8 @@ CLI_TOOLS=(
     "awscli"
     "xsel"
     "timeshift"
+    "gnome-sushi"
+
 )
 
 DEVELOPMENT_TOOLS=(
