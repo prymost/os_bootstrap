@@ -32,6 +32,7 @@ OTHER=(
     "vlc"
     "discord"
     "steam-installer"
+    "fonts-powerline"
 )
 
 # Combine all packages that can be installed via apt
