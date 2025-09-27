@@ -48,5 +48,13 @@ else
     exit 1
 fi
 
+echo "🔄 Restoring configuration files..."
+if [[ -x "${SCRIPT_DIR}/shared/manage_configs.sh" ]]; then
+    "${SCRIPT_DIR}/shared/manage_configs.sh restore"
+else
+    echo "❌ Configuration management script not found or not executable"
+    exit 1
+fi
+
 echo "✅ Bootstrap process completed!"
 echo "🔄 Please restart your session to ensure all changes take effect."

@@ -178,7 +178,7 @@ else
     echo "✅ Calibre already installed"
 fi
 
-# Configure Zsh with Oh My Zsh and shared .zshrc
+# Configure Zsh with Oh My Zsh
 if command -v zsh &> /dev/null; then
     echo "🐚 Setting up Oh My Zsh..."
     if [[ ! -d "$HOME/.oh-my-zsh" ]]; then
@@ -189,31 +189,10 @@ if command -v zsh &> /dev/null; then
         git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
         git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
 
-        # Copy shared .zshrc configuration
-        SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-        SHARED_ZSHRC="${SCRIPT_DIR}/../../../shared/.zshrc"
-        if [[ -f "$SHARED_ZSHRC" ]]; then
-            echo "📝 Installing shared .zshrc configuration..."
-            cp "$SHARED_ZSHRC" "$HOME/.zshrc"
-            echo "✅ Shared .zshrc installed"
-        else
-            echo "⚠️  Shared .zshrc not found at $SHARED_ZSHRC, using default configuration"
-            # Fallback to basic agnoster configuration
-            sed -i 's/ZSH_THEME="robbyrussell"/ZSH_THEME="agnoster"/' ~/.zshrc
-            sed -i 's/plugins=(git)/plugins=(git zsh-autosuggestions zsh-syntax-highlighting)/' ~/.zshrc
-        fi
         # Setting ZSH as a primary shell
         chsh -s $(which zsh)
     else
         echo "✅ Oh My Zsh already installed"
-        # Check if we should update to use shared .zshrc
-        SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-        SHARED_ZSHRC="${SCRIPT_DIR}/../../../shared/.zshrc"
-        if [[ -f "$SHARED_ZSHRC" ]]; then
-            echo "📝 Updating to shared .zshrc configuration..."
-            cp "$SHARED_ZSHRC" "$HOME/.zshrc"
-            echo "✅ Shared .zshrc installed"
-        fi
     fi
 else
     echo "⚠️  Zsh not found, skipping Oh My Zsh setup"
