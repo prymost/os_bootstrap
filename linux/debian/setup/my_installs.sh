@@ -52,6 +52,28 @@ else
     echo "ℹ️  No standard packages to install"
 fi
 
+# Install Homebrew (Linuxbrew)
+if ! command -v brew &> /dev/null; then
+    echo "🍺 Installing Homebrew (Linuxbrew)..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    echo "✅ Homebrew (Linuxbrew) installed"
+fi
+
+# Install Homebrew packages
+HOMEBREW_PACKAGES=(
+    "kubectl"
+)
+
+if [[ ${#HOMEBREW_PACKAGES[@]} -gt 0 ]]; then
+    echo "🍺 Installing ${#HOMEBREW_PACKAGES[@]} Homebrew packages..."
+    # Add Homebrew to PATH for the current session
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    brew install "${HOMEBREW_PACKAGES[@]}" --quiet
+    echo "✅ Homebrew package installation completed!"
+else
+    echo "ℹ️  No Homebrew packages to install"
+fi
+
 # Install special packages that need additional steps
 echo "🔧 Installing packages that need special setup..."
 
@@ -59,12 +81,21 @@ echo "🔧 Installing packages that need special setup..."
 echo "📦 Installing VS Code..."
 if ! command -v code &> /dev/null; then
     # Add Microsoft GPG key and repository
-    wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg
-    sudo install -m 644 packages.microsoft.gpg /etc/apt/trusted.gpg.d/
-    sudo sh -c 'echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/trusted.gpg.d/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list'
+    wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > microsoft.gpg
+    sudo install -D -o root -g root -m 644 microsoft.gpg /usr/share/keyrings/microsoft.gpg
+    rm -f microsoft.gpg
+    # Check if tee is available and create the sources file
+    sudo sh -c 'cat > /etc/apt/sources.list.d/vscode.sources << "EOF"
+Types: deb
+URIs: https://packages.microsoft.com/repos/code
+Suites: stable
+Components: main
+Architectures: amd64,arm64,armhf
+Signed-By: /usr/share/keyrings/microsoft.gpg
+EOF'
+    sudo apt install apt-transport-https -y -qq
     sudo apt update -qq
-    sudo apt install -y -qq code
-    rm packages.microsoft.gpg
+    sudo apt install code -y -qq
     echo "✅ VS Code installed"
 else
     echo "✅ VS Code already installed"
@@ -81,17 +112,6 @@ if ! command -v brave-browser &> /dev/null; then
     echo "✅ Brave Browser installed"
 else
     echo "✅ Brave Browser already installed"
-fi
-
-# Install kubectl
-echo "📦 Installing kubectl..."
-if ! command -v kubectl &> /dev/null; then
-    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-    sudo install -m 0755 kubectl /usr/local/bin/kubectl
-    rm kubectl
-    echo "✅ kubectl installed"
-else
-    echo "✅ kubectl already installed"
 fi
 
 # Synology Drive Client

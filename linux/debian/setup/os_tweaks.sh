@@ -50,6 +50,7 @@ echo "⌨️  Configuring keyboard and input..."
 # Faster key repeat
 gsettings set org.gnome.desktop.peripherals.keyboard repeat-interval 30
 gsettings set org.gnome.desktop.peripherals.keyboard delay 300
+gsettings set org.freedesktop.ibus.panel.emoji hotkey "[]"
 
 # File Manager (Nautilus) tweaks
 echo "📁 Configuring file manager..."
