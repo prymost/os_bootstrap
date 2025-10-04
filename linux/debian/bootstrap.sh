@@ -56,5 +56,13 @@ else
     exit 1
 fi
 
+echo "⚙️  Setting up automations..."
+if [[ -x "${SCRIPT_DIR}/setup/automations.sh" ]]; then
+    "${SCRIPT_DIR}/setup/automations.sh"
+else
+    echo "❌ Automations script not found or not executable"
+    exit 1
+fi
+
 echo "✅ Bootstrap process completed!"
 echo "🔄 Please restart your session to ensure all changes take effect."

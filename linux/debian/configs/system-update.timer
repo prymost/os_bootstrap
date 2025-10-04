@@ -1,0 +1,11 @@
+[Unit]
+Description=Run daily system updates
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+OnBootSec=15min
+OnUnitActiveSec=1d
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,6 @@
+[Unit]
+Description=Update system packages
+
+[Service]
+Type=oneshot
+ExecStart=%h/Workspace/os_bootstrap/linux/debian/update.sh
