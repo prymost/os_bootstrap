@@ -21,7 +21,7 @@ backup() {
         dest="${CONFIG_FILES[$src]}"
         if [[ -f "$src" ]]; then
             echo "  -> Backing up $src to $dest"
-            # cp "$src" "$dest"
+            cp "$src" "$dest"
         else
             echo "  -> Source file not found, skipping: $src"
         fi
@@ -38,7 +38,7 @@ restore() {
             # Create directory if it doesn't exist
             mkdir -p "$(dirname "$dest")"
             echo "  -> Restoring $src to $dest"
-            # cp "$src" "$dest"
+            cp "$src" "$dest"
         else
             echo "  -> Source file not found, skipping: $src"
         fi
