@@ -186,4 +186,9 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         # Windows integration
         export BROWSER='/mnt/c/Program Files/Google/Chrome/Application/chrome.exe'
     fi
+
+    # Homebrew on Linux
+    if [ -d "/home/linuxbrew/.linuxbrew/bin" ]; then
+        eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    fi
 fi
