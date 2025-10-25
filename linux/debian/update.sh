@@ -2,13 +2,15 @@
 set -uo pipefail
 IFS=$'\n\t'
 
+HOMEBREW_PATH="/home/linuxbrew/.linuxbrew/bin/brew"
+
 echo "🔄 Updating user packages..."
 
 # Update Homebrew packages
-if command -v brew &> /dev/null; then
+if command -v "$HOMEBREW_PATH" &> /dev/null; then
     echo "🍺 Updating Homebrew packages..."
-    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-    brew update && brew upgrade
+    eval "$($HOMEBREW_PATH shellenv)"
+    "$HOMEBREW_PATH" update && "$HOMEBREW_PATH" upgrade
     echo "✅ Homebrew packages updated!"
 else
     echo "ℹ️ Homebrew not found, skipping."
