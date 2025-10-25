@@ -517,9 +517,9 @@ define_keymap(lambda wm_class: wm_class.casefold() not in remotes,{
     # K("RC-Left"): K("Alt-LEFT"),                    # Chrome-nw - Back
     # K("RC-Right"): K("Alt-RIGHT"),                  # Chrome-nw - Forward
     K("RC-Up"): K("C-Home"),                      # Beginning of File
-    K("RC-Shift-Up"): K("C-Shift-Home"),          # Select all to Beginning of File
+    # K("RC-Shift-Up"): K("C-Shift-Home"),          # Select all to Beginning of File
     K("RC-Down"): K("C-End"),                     # End of File
-    K("RC-Shift-Down"): K("C-Shift-End"),         # Select all to End of File
+    # K("RC-Shift-Down"): K("C-Shift-End"),         # Select all to End of File
     # K("RAlt-Backspace"): K("Delete"),               # Chromebook/IBM - Delete
     K("Super-Backspace"): K("C-Backspace"),       # Delete Left Word of Cursor
     K("Super-Delete"): K("C-Delete"),             # Delete Right Word of Cursor
