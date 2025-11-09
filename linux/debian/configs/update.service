@@ -1,5 +1,7 @@
 [Unit]
 Description=Update system packages
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot
