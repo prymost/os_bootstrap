@@ -93,7 +93,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
     plugins=(git aws docker zsh-autosuggestions)
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     # Linux plugins (includes WSL)
-    plugins=(git zsh-autosuggestions zsh-syntax-highlighting)
+    plugins=(git kubectl zsh-autosuggestions zsh-syntax-highlighting)
 else
     # Default plugins
     plugins=(git zsh-autosuggestions)
@@ -150,14 +150,14 @@ export PIPENV_VENV_IN_PROJECT=true
 alias ww="cd ${HOME}/Workspace"
 
 # Kubectl and K8s
-alias k="kubectl"
-alias kgp="kubectl get pods"
-alias kgs="kubectl get svc"
+# alias k="kubectl"
+# alias kgp="kubectl get pods"
+# alias kgs="kubectl get svc"
 # kubectl autocomplete if kubectl plugin is not specified
-if command -v kubectl >/dev/null 2>&1; then
-  source <(kubectl completion zsh)
-fi
-complete -F __start_kubectl k         # enable kubectl alias autocompletion
+# if command -v kubectl >/dev/null 2>&1; then
+#   source <(kubectl completion zsh)
+# fi
+# complete -F __start_kubectl k         # enable kubectl alias autocompletion
 
 # Hook up direnv
 eval "$(direnv hook zsh)"
