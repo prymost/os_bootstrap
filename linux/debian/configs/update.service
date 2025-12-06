@@ -5,4 +5,5 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
+ExecStartPre=/bin/sh -c 'until ping -c1 -W1 github.com >/dev/null 2>&1; do sleep 2; done'
 ExecStart=%h/Workspace/os_bootstrap/linux/debian/update.sh
