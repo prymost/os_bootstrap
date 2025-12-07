@@ -33,6 +33,7 @@ OTHER=(
     "discord"
     "steam-installer"
     "fonts-powerline"
+    "flameshot"
 )
 
 # Combine all packages that can be installed via apt
@@ -165,6 +166,15 @@ else
     echo "To install Flatpak, run: sudo apt install flatpak"
     echo "After installation, run this script again."
     exit 1
+fi
+
+# Install Pinta (Image Editor)
+echo "📦 Installing Pinta..."
+if ! command -v pinta &> /dev/null; then
+    flatpak install --user --noninteractive flathub pinta
+    echo "✅ Pinta installed"
+else
+    echo "✅ Pinta already installed"
 fi
 
 # Install Calibre
