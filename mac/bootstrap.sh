@@ -34,6 +34,9 @@ for app in "Activity Monitor" "cfprefsd" "Dock" "Finder" "SystemUIServer"; do
     killall "${app}" &> /dev/null || true
 done
 
+echo "⚙️  Setting up automations..."
+"${SCRIPT_DIR}/setup/automations.sh"
+
 echo "✅ Bootstrap process completed!"
 echo "🔄 Please restart your computer to ensure all changes take effect."
 
