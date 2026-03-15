@@ -73,7 +73,6 @@ The script installs these applications via winget:
 - ExpressVPN
 - Logseq (note-taking)
 - Notion (productivity)
-- **Kinto** (Mac-style keyboard shortcuts for Windows)
 
 ### ⚡ System Optimizations (Section 5)
 - **Disables Xbox services** - Reduces background processes if you don't game

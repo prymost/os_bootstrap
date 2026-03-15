@@ -10,7 +10,6 @@ declare -A CONFIG_FILES
 CONFIG_FILES=(
     ["$HOME/.vimrc"]="$SCRIPT_DIR/.vimrc"
     ["$HOME/.zshrc"]="$SCRIPT_DIR/.zshrc"
-    ["$HOME/.config/kinto/kinto.py"]="$SCRIPT_DIR/kinto.py"
     ["$HOME/.config/kitty/kitty.conf"]="$SCRIPT_DIR/kitty.conf"
 )
 

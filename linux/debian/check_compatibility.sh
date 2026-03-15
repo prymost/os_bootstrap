@@ -39,6 +39,32 @@ check_distribution() {
     fi
 }
 
+# Check desktop environment (informational)
+check_desktop_environment() {
+    echo ""
+    echo "🖥️  Checking desktop environment..."
+
+    local desktop="${XDG_CURRENT_DESKTOP:-unset}"
+    local session_type="${XDG_SESSION_TYPE:-unset}"
+
+    echo "   Desktop:      $desktop"
+    echo "   Session type: $session_type"
+
+    if [[ "$desktop" == *"COSMIC"* ]]; then
+        echo "   ✅ COSMIC desktop detected"
+    elif [[ "$desktop" == *"GNOME"* ]]; then
+        echo "   ✅ GNOME desktop detected"
+    else
+        echo "   ℹ️  Desktop unknown or unset — bootstrap will prompt for selection"
+    fi
+
+    if [[ "$session_type" == "wayland" ]]; then
+        echo "   ℹ️  Wayland session — use wl-clipboard; X11-only tools won't work"
+    elif [[ "$session_type" == "x11" ]]; then
+        echo "   ℹ️  X11 session detected"
+    fi
+}
+
 # Check for required commands
 check_required_commands() {
     echo ""
@@ -84,6 +110,7 @@ main() {
     local exit_code=0
 
     check_distribution || exit_code=1
+    check_desktop_environment  # informational only, does not block bootstrap
     check_required_commands || exit_code=1
     check_connectivity || exit_code=1
 

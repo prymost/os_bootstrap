@@ -16,20 +16,38 @@ My personal scripts for setting up and maintaining a PopOS or Debian Linux deskt
 
 ## 📁 Script Overview
 
-- **`bootstrap.sh`** - Main entry point that orchestrates the entire setup
-- **`check_compatibility.sh`** - Validates system compatibility before setup
+- **`bootstrap.sh`** - Main entry point. Auto-detects the running desktop (`COSMIC` or `GNOME`) via `XDG_CURRENT_DESKTOP` and prompts if unset.
+- **`check_compatibility.sh`** - Validates system compatibility and reports detected desktop/session type before setup.
+
+### Shared setup (runs for all desktops)
 - **`setup/initial.sh`** - Installs essential build tools and system packages
-- **`setup/my_installs.sh`** - Installs development tools, applications, and configures zsh with shared .zshrc template
+- **`setup/system_tweaks.sh`** - Applies kernel-level tweaks: swappiness, inotify limits, SSD TRIM
+- **`setup/my_installs.sh`** - Installs common development tools and applications, configures Zsh/Oh My Zsh
+
+### Desktop-specific setup
+Each desktop has a `packages.sh` (desktop-specific apt/flatpak installs) and `ui_tweaks.sh` (appearance, shortcuts, key repeat, idle timeout):
+
+| | GNOME (`setup/gnome/`) | COSMIC (`setup/cosmic/`) |
+|---|---|---|
+| **packages.sh** | `gnome-sushi`, `xsel`, `flameshot` (apt) | `wl-clipboard`, `flameshot` (Flatpak) |
+| **ui_tweaks.sh** | `gsettings`: dark mode, idle, shortcuts | RON files in `~/.config/cosmic/`: dark mode, idle, shortcuts |
 
 ## 🛠 Alternative Usage
 
 ### Running Individual Scripts
 ```bash
-# Setup only core tools
+# Core system tools only
 ./setup/initial.sh
 
-# Install applications and tools only
+# Kernel/system tweaks only
+./setup/system_tweaks.sh
+
+# Common applications only
 ./setup/my_installs.sh
+
+# Desktop-specific packages and UI (pick one)
+./setup/cosmic/packages.sh && ./setup/cosmic/ui_tweaks.sh
+./setup/gnome/packages.sh  && ./setup/gnome/ui_tweaks.sh
 ```
 
 ## 🔄 Automated Updates

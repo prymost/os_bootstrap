@@ -12,10 +12,7 @@ CLI_TOOLS=(
     "direnv"
     "micro"
     "awscli"
-    "xsel"
     "timeshift"
-    "gnome-sushi"
-
 )
 
 DEVELOPMENT_TOOLS=(
@@ -33,7 +30,6 @@ OTHER=(
     "discord"
     "steam-installer"
     "fonts-powerline"
-    "flameshot"
 )
 
 # Combine all packages that can be installed via apt
@@ -198,36 +194,20 @@ if command -v zsh &> /dev/null; then
         # Install essential plugins
         git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
         git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
-
-        # Setting ZSH as a primary shell
-        chsh -s $(which zsh)
     else
         echo "✅ Oh My Zsh already installed"
     fi
+
+    # Set Zsh as default shell (runs regardless of whether Oh My Zsh was just installed)
+    if [[ "$SHELL" != "$(which zsh)" ]]; then
+        echo "🐚 Setting Zsh as default shell..."
+        sudo chsh -s "$(which zsh)" "$USER"
+        echo "✅ Default shell set to Zsh (re-login to take effect)"
+    else
+        echo "✅ Zsh is already the default shell"
+    fi
 else
     echo "⚠️  Zsh not found, skipping Oh My Zsh setup"
-fi
-
-# Install Kinto (Mac-style shortcuts for Linux)
-echo "📦 Installing Kinto..."
-if ! command -v xkeysnail &> /dev/null; then
-    /bin/bash -c "$(wget -qO- https://raw.githubusercontent.com/rbreaves/kinto/HEAD/install/linux.sh || curl -fsSL https://raw.githubusercontent.com/rbreaves/kinto/HEAD/install/linux.sh)"
-
-    # Configure Kinto with custom shortcut
-    KINTO_CONFIG="$HOME/.config/kinto/kinto.py"
-    if [[ -f "$KINTO_CONFIG" ]]; then
-        echo "🔧 Configuring Kinto shortcuts..."
-        # Replace RC-Space mapping from Alt-F1 to Super-SLASH
-        sed -i 's/K("RC-Space"): K("Alt-F1"),/K("RC-Space"): K("Super-SLASH"),/' "$KINTO_CONFIG"
-        echo "✅ Kinto configuration updated"
-    else
-        echo "⚠️  Kinto config file not found at $KINTO_CONFIG"
-        echo "⚠️  You may need to manually replace K(\"RC-Space\"): K(\"Alt-F1\"), with K(\"RC-Space\"): K(\"Super-SLASH\"), in the config"
-    fi
-
-    echo "✅ Kinto installed and configured"
-else
-    echo "✅ Kinto (xkeysnail) already installed"
 fi
 
 # Install Kitty Terminal
