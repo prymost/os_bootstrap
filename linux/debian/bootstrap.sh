@@ -77,6 +77,9 @@ run_script "${SCRIPT_DIR}/setup/initial.sh"
 echo "⚙️  Applying system tweaks..."
 run_script "${SCRIPT_DIR}/setup/system_tweaks.sh"
 
+echo "⌨️  Configuring keyboard (ZSA Voyager)..."
+run_script "${SCRIPT_DIR}/setup/zsa_voyager.sh"
+
 echo "📦 Installing common applications and packages..."
 run_script "${SCRIPT_DIR}/setup/my_installs.sh"
 

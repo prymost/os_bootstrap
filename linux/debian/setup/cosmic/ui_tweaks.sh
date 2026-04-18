@@ -21,11 +21,11 @@ mkdir -p "$SHORTCUTS_DIR"
 cat > "$SHORTCUTS_DIR/custom" << 'EOF'
 {
     (modifiers: [Ctrl], key: "space"): System(Launcher),
-    (modifiers: [Ctrl], key: "Tab"): System(WindowSwitcher),
-    (modifiers: [Ctrl, Shift], key: "Tab"): System(WindowSwitcherPrevious),
-    (modifiers: [Super], key: "Tab"): System(WindowSwitcher),
-    (modifiers: [Super, Shift], key: "Tab"): System(WindowSwitcherPrevious),
     (modifiers: [Ctrl], key: "q"): Close,
+    (modifiers: [Super, Shift], key: "Tab"): Disable,
+    (modifiers: [Alt], key: "F4"): Disable,
+    (modifiers: [Super], key: "Tab"): Disable,
+    (modifiers: [Super, Ctrl], key: "q"): System(LockScreen),
 }
 EOF
 

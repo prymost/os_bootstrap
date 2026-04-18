@@ -1,6 +1,9 @@
 I will record changes to this file just so i don't need to look at commit history every time
 
 # Changelog
+2026-04-18:
+- Updated Kitty config to match iTerm2
+- Added ZSA stuff and key mapping overrides for Cosmic
 2025-12-21:
 - Added script for updating mac on schedule
 2025-11-09:
