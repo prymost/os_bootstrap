@@ -2,35 +2,35 @@
 set -uo pipefail
 IFS=$'\n\t'
 
-echo "📦 Installing development tools and applications..."
+# Ensure jq is installed first to parse apps.json
+if ! command -v jq &> /dev/null; then
+    echo "🔧 Installing jq first to parse configuration..."
+    sudo apt update -qq && sudo apt install -y -qq jq
+fi
 
-# Define package lists by category (only apps from apps.json)
-CLI_TOOLS=(
-    "git"
-    "jq"
-    "bat"
-    "direnv"
-    "micro"
-    "awscli"
-    "timeshift"
-)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+APPS_JSON="${SCRIPT_DIR}/../../../shared/apps.json"
 
-DEVELOPMENT_TOOLS=(
-    "docker.io"      # Docker
-    "rbenv"
-    "ruby-build"
-    "pipenv"
-    "zsh"
-    "zsh-autosuggestions"
-    "keychain"
-)
+if [[ ! -f "$APPS_JSON" ]]; then
+    echo "❌ Configuration file not found: $APPS_JSON"
+    exit 1
+fi
 
-OTHER=(
-    "vlc"
-    "discord"
-    "steam-installer"
-    "fonts-powerline"
-)
+echo "📦 Loading packages from shared/apps.json..."
+mapfile -t CLI_COMMON < <(jq -r '.common.cli_tools[]' "$APPS_JSON")
+mapfile -t CLI_SPECIFIC < <(jq -r '.platform_specific.cli_tools.apt[]' "$APPS_JSON")
+CLI_TOOLS=("${CLI_COMMON[@]}" "${CLI_SPECIFIC[@]}")
+
+mapfile -t DEV_COMMON < <(jq -r '.common.development_tools[]' "$APPS_JSON")
+mapfile -t DEV_SPECIFIC < <(jq -r '.platform_specific.development_tools.apt[]' "$APPS_JSON")
+DEVELOPMENT_TOOLS=("${DEV_COMMON[@]}" "${DEV_SPECIFIC[@]}")
+
+mapfile -t OTHER_COMMON < <(jq -r '.common.other[]' "$APPS_JSON")
+mapfile -t OTHER_SPECIFIC < <(jq -r '.platform_specific.other.apt[]' "$APPS_JSON")
+OTHER=("${OTHER_COMMON[@]}" "${OTHER_SPECIFIC[@]}")
+
+mapfile -t HOMEBREW_PACKAGES < <(jq -r '.homebrew[]' "$APPS_JSON")
+mapfile -t FLATPAK_PACKAGES < <(jq -r '.flatpak[]' "$APPS_JSON")
 
 # Combine all packages that can be installed via apt
 ALL_PACKAGES=(
@@ -56,10 +56,7 @@ if ! command -v brew &> /dev/null; then
     echo "✅ Homebrew (Linuxbrew) installed"
 fi
 
-# Install Homebrew packages
-HOMEBREW_PACKAGES=(
-    "kubectl"
-)
+# Homebrew packages loaded from apps.json
 
 if [[ ${#HOMEBREW_PACKAGES[@]} -gt 0 ]]; then
     echo "🍺 Installing ${#HOMEBREW_PACKAGES[@]} Homebrew packages..."
@@ -142,35 +139,20 @@ else
     echo "✅ Synology Drive Client already installed"
 fi
 
-# Install Logseq
-echo "📦 Installing Logseq..."
-if command -v flatpak &> /dev/null
-then
-    echo "Flatpak is installed. Proceeding with Logseq installation..."
-
-    # Add the Flathub repository if it's not already added
-    echo "Adding Flathub repository..."
-    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-
-    # Install Logseq from Flathub non-interactively
-    echo "Installing Logseq..."
-    flatpak install --noninteractive flathub com.logseq.Logseq
-
-    echo "Logseq has been successfully installed."
-else
-    echo "Flatpak is not installed on your system."
-    echo "To install Flatpak, run: sudo apt install flatpak"
-    echo "After installation, run this script again."
-    exit 1
-fi
-
-# Install Pinta (Image Editor)
-echo "📦 Installing Pinta..."
-if ! command -v pinta &> /dev/null; then
-    flatpak install --user --noninteractive flathub pinta
-    echo "✅ Pinta installed"
-else
-    echo "✅ Pinta already installed"
+# Install Flatpak packages from apps.json
+if [[ ${#FLATPAK_PACKAGES[@]} -gt 0 ]]; then
+    echo "📦 Installing Flatpak packages..."
+    if command -v flatpak &> /dev/null; then
+        # Add the Flathub repository if it's not already added
+        flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+        for app in "${FLATPAK_PACKAGES[@]}"; do
+            echo "🔄 Installing Flatpak: $app..."
+            flatpak install --user --noninteractive flathub "$app" || echo "⚠️ Failed to install $app"
+        done
+        echo "✅ Flatpak installations completed"
+    else
+        echo "⚠️ Flatpak is not installed. Please install flatpak first."
+    fi
 fi
 
 # Install Calibre
