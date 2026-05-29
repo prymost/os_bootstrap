@@ -1,0 +1,34 @@
+# Shared, cross-platform variables for both Pop!_OS and Fedora KDE
+
+common_cli_packages:
+  - git
+  - jq
+  - bat
+  - direnv
+  - micro
+  - timeshift
+  - keychain
+  - syncthing
+
+common_dev_packages:
+  - zsh
+  - zsh-autosuggestions
+
+common_other_packages:
+  - vlc
+  - discord
+
+flatpak_packages:
+  - com.logseq.Logseq
+  - org.prismlauncher.PrismLauncher
+  - org.pinta_project.Pinta
+
+homebrew_packages:
+  - kubectl
+
+purged_os_packages:
+  - libreoffice*
+  - kmail*
+  - kontact*
+  - korganizer*
+  - dragon

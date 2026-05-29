@@ -1,0 +1,19 @@
+# RedHat/Fedora specific package names and settings
+
+os_cli_dependencies:
+  - gcc
+  - gcc-c++
+  - make
+  - curl
+  - wget
+  - util-linux-user
+  - procps-ng
+  - wl-clipboard
+  - xcb-util-cursor
+
+os_dev_packages:
+  - moby-engine
+
+os_other_packages:
+  - steam
+  - powerline-fonts

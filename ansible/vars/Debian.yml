@@ -1,0 +1,19 @@
+# Debian/Pop!_OS specific package names and settings
+
+os_cli_dependencies:
+  - build-essential
+  - curl
+  - wget
+  - software-properties-common
+  - apt-transport-https
+  - ca-certificates
+  - gnupg
+  - lsb-release
+  - wl-clipboard
+
+os_dev_packages:
+  - docker.io
+
+os_other_packages:
+  - steam-installer
+  - fonts-powerline

@@ -1,0 +1,381 @@
+---
+- name: Workstation Declarative Provisioning Playbook
+  hosts: localhost
+  connection: local
+  become: yes
+
+  vars_files:
+    - vars/default.yml
+    - "vars/{{ ansible_os_family }}.yml"
+
+  tasks:
+    # ── 1. PRE-INSTALL & REPOSITORY CONFIGURATION ───────────────────────────
+
+    - name: (Debian) Add Microsoft GPG key for VS Code
+      apt_key:
+        url: https://packages.microsoft.com/keys/microsoft.asc
+        state: present
+      when: ansible_os_family == 'Debian'
+
+    - name: (Debian) Add VS Code repository
+      apt_repository:
+        repo: "deb [arch=amd64,arm64,armhf] https://packages.microsoft.com/repos/code stable main"
+        state: present
+        filename: vscode
+      when: ansible_os_family == 'Debian'
+
+    - name: (Debian) Add Brave Browser GPG key
+      apt_key:
+        url: https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
+        state: present
+      when: ansible_os_family == 'Debian'
+
+    - name: (Debian) Add Brave Browser repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://brave-browser-apt-release.s3.brave.com/ stable main"
+        state: present
+        filename: brave-browser
+      when: ansible_os_family == 'Debian'
+
+    - name: (RedHat) Add VS Code repository
+      yum_repository:
+        name: code
+        description: Visual Studio Code
+        baseurl: https://packages.microsoft.com/yumrepos/vscode
+        enabled: yes
+        gpgcheck: yes
+        gpgkey: https://packages.microsoft.com/keys/microsoft.asc
+      when: ansible_os_family == 'RedHat'
+
+    - name: (RedHat) Add Brave Browser repository
+      yum_repository:
+        name: brave-browser
+        description: Brave Browser
+        baseurl: https://brave-browser-rpm-release.s3.brave.com/x86_64/
+        enabled: yes
+        gpgcheck: yes
+        gpgkey: https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
+      when: ansible_os_family == 'RedHat'
+
+    - name: (RedHat) Install RPM Fusion free & nonfree repository packages for Steam
+      dnf:
+        name:
+          - https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm
+          - https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm
+        state: present
+        disable_gpg_check: yes
+      when: ansible_os_family == 'RedHat'
+
+
+
+    # ── 2. SYSTEM PACKAGE MANAGEMENT (DECLARATIVE) ───────────────────────────
+
+    - name: Purge unwanted bloatware packages from system
+      package:
+        name: "{{ item }}"
+        state: absent
+      loop: "{{ purged_os_packages }}"
+
+    - name: Build target list of packages to install
+      set_fact:
+        target_packages: "{{ common_cli_packages + common_dev_packages + common_other_packages + os_cli_dependencies + os_dev_packages + os_other_packages }}"
+
+    - name: Install required CLI, dev, and GUI packages
+      package:
+        name: "{{ target_packages }}"
+        state: present
+
+    - name: Install Brave Browser and VS Code
+      package:
+        name:
+          - brave-browser
+          - code
+        state: present
+
+
+
+    # ── 3. FLATPAK PACKAGES ──────────────────────────────────────────────────
+
+    - name: Add Flathub repository
+      flatpak_repo:
+        name: flathub
+        state: present
+        method: user
+        uuid: https://flathub.org/repo/flathub.flatpakrepo
+      become: yes
+      become_user: boris
+
+    - name: Install Flatpak applications declaratively
+      flatpak:
+        name: "{{ item }}"
+        state: present
+        method: user
+      loop: "{{ flatpak_packages }}"
+      become: yes
+      become_user: boris
+
+    # ── 4. HOMEBREW (LINUXBREW) ──────────────────────────────────────────────
+
+    - name: Check if Homebrew is installed
+      stat:
+        path: /home/linuxbrew/.linuxbrew/bin/brew
+      register: brew_stat
+
+    - name: Install Homebrew (Linuxbrew)
+      shell: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      become: yes
+      become_user: boris
+      when: not brew_stat.stat.exists
+
+    - name: Install requested Homebrew packages
+      community.general.homebrew:
+        name: "{{ homebrew_packages }}"
+        state: present
+      become: yes
+      become_user: boris
+      environment:
+        PATH: "/home/linuxbrew/.linuxbrew/bin:{{ ansible_env.PATH }}"
+
+    # ── 5. PERFORMANCE AND KERNEL TWEAKS ─────────────────────────────────────
+
+    - name: Apply sysctl swappiness value
+      ansible.posix.sysctl:
+        name: vm.swappiness
+        value: "10"
+        state: present
+        sysctl_set: yes
+        reload: yes
+
+    - name: Apply sysctl max_user_watches limits
+      ansible.posix.sysctl:
+        name: fs.inotify.max_user_watches
+        value: "524288"
+        state: present
+        sysctl_set: yes
+        reload: yes
+
+    - name: Enable periodic SSD TRIM service
+      systemctl:
+        name: fstrim.timer
+        enabled: yes
+        state: started
+
+    # ── 6. ZSA VOYAGER KEYBOARD CONFIGURATION ────────────────────────────────
+
+    - name: Ensure plugdev group exists
+      group:
+        name: plugdev
+        state: present
+
+    - name: Add user boris to plugdev group
+      user:
+        name: boris
+        groups: plugdev
+        append: yes
+
+    - name: Write udev rules for ZSA Voyager
+      copy:
+        dest: /etc/udev/rules.d/50-zsa.rules
+        content: |
+          # Rules for Oryx web flashing and live training
+          KERNEL=="hidraw*", ATTRS{idVendor}=="16c0", MODE="0664", GROUP="plugdev"
+          KERNEL=="hidraw*", ATTRS{idVendor}=="3297", MODE="0664", GROUP="plugdev"
+          # Wally Flashing rules
+          SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="df11", MODE:="0666", SYMLINK+="stm32_dfu"
+          # Keymapp Flashing rules for the Voyager
+          SUBSYSTEMS=="usb", ATTRS{idVendor}=="3297", MODE:="0666", SYMLINK+="ignition_dfu"
+        owner: root
+        group: root
+        mode: "0644"
+      register: udev_rules
+
+    - name: Reload udev rules
+      command: udevadm control --reload-rules && udevadm trigger
+      when: udev_rules.changed
+
+    # ── 7. DOTFILES RESTORATION ──────────────────────────────────────────────
+
+    - name: Run configurations restoration script
+      command: /home/boris/Workspace/os_bootstrap/shared/manage_configs.sh restore
+      become: yes
+      become_user: boris
+      register: config_restore
+      failed_when: false # Don't fail if configs are not initialized yet
+
+    # ── 8. USER ENVIRONMENT (ZSH, OMZ, KITTY) ────────────────────────────────
+
+    - name: Ensure user shell is Zsh
+      user:
+        name: boris
+        shell: /bin/zsh
+
+    - name: Check if Oh My Zsh is installed
+      stat:
+        path: /home/boris/.oh-my-zsh
+      register: omz_stat
+
+    - name: Install Oh My Zsh
+      shell: sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+      become: yes
+      become_user: boris
+      when: not omz_stat.stat.exists
+
+    - name: Clone Oh My Zsh custom plugins
+      git:
+        repo: "{{ item.repo }}"
+        dest: "/home/boris/.oh-my-zsh/custom/plugins/{{ item.name }}"
+        depth: 1
+      loop:
+        - {
+            name: "zsh-autosuggestions",
+            repo: "https://github.com/zsh-users/zsh-autosuggestions",
+          }
+        - {
+            name: "zsh-syntax-highlighting",
+            repo: "https://github.com/zsh-users/zsh-syntax-highlighting.git",
+          }
+      become: yes
+      become_user: boris
+
+    - name: Check if Kitty Terminal is installed
+      stat:
+        path: /home/boris/.local/bin/kitty
+      register: kitty_stat
+
+    - name: Install and configure Kitty Terminal
+      shell: |
+        curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin
+        mkdir -p /home/boris/.local/bin
+        ln -sf /home/boris/.local/kitty.app/bin/kitty /home/boris/.local/bin/kitty
+        ln -sf /home/boris/.local/kitty.app/bin/kitten /home/boris/.local/bin/kitten
+        mkdir -p /home/boris/.local/share/applications
+        cp /home/boris/.local/kitty.app/share/applications/kitty.desktop /home/boris/.local/share/applications/
+        cp /home/boris/.local/kitty.app/share/applications/kitty-open.desktop /home/boris/.local/share/applications/
+        sed -i "s|Icon=kitty|Icon=/home/boris/.local/kitty.app/share/icons/hicolor/256x256/apps/kitty.png|g" /home/boris/.local/share/applications/kitty*.desktop
+        sed -i "s|Exec=kitty|Exec=/home/boris/.local/kitty.app/bin/kitty|g" /home/boris/.local/share/applications/kitty*.desktop
+        echo 'kitty.desktop' > /home/boris/.config/xdg-terminals.list
+      become: yes
+      become_user: boris
+      when: not kitty_stat.stat.exists
+
+    # ── 9. KDE PLATFORM CONFIGURATIONS (FEDORA ONLY) ──────────────────────────
+
+    - name: Configure KDE UI shortcuts and behaviors
+      shell: |
+        # Map PrintScreen to Spectacle rectangular region capture
+        kwriteconfig6 --file kglobalshortcutsrc --group "org.kde.spectacle.desktop" --key "RectangularRegion" "Print\tnone\tCapture Rectangular Region"
+        kwriteconfig6 --file kglobalshortcutsrc --group "org.kde.spectacle.desktop" --key "_launch" "Meta+Print\tnone\tLaunch Spectacle"
+
+        # Configure Task Switcher to only show current screen
+        kwriteconfig6 --file kwinrc --group "TabBox" --key "ShowOnlyCurrentScreen" "true"
+        kwriteconfig6 --file kwinrc --group "TabBox" --key "ActivitiesMode" "1"
+        kwriteconfig6 --file kwinrc --group "TabBox" --key "DesktopMode" "1"
+
+        # Set keyboard repeat speed and delay
+        kwriteconfig6 --file kcminputrc --group "Keyboard" --key "RepeatDelay" "300"
+        kwriteconfig6 --file kcminputrc --group "Keyboard" --key "RepeatRate" "30"
+
+        # Set screen lock idle timeout to 20 minutes
+        kwriteconfig6 --file kscreenlockerrc --group "Daemon" --key "Timeout" "20"
+        kwriteconfig6 --file kscreenlockerrc --group "Daemon" --key "Autolock" "true"
+
+        # Reload configs dynamically
+        dbus-send --session --dest=org.kde.keyboard --type=method_call /Layouts org.kde.KeyboardLayouts.reloadConfig || true
+        dbus-send --session --dest=org.kde.KWin --type=method_call /KWin org.kde.KWin.reconfigure || true
+      become: yes
+      become_user: boris
+      when: ansible_os_family == 'RedHat'
+
+    # ── 10. SYSTEM UPDATE AUTOMATION SERVICES ────────────────────────────────
+
+    - name: Create system-update systemd service unit
+      copy:
+        dest: /etc/systemd/system/system-update.service
+        content: |
+          [Unit]
+          Description=Update system packages (dnf/apt, calibre)
+
+          [Service]
+          Type=oneshot
+          ExecStart=/home/boris/Workspace/os_bootstrap/linux/{{ 'fedora' if ansible_os_family == 'RedHat' else 'debian' }}/system-update.sh
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Create system-update systemd timer unit
+      copy:
+        dest: /etc/systemd/system/system-update.timer
+        content: |
+          [Unit]
+          Description=Run system update weekly
+
+          [Timer]
+          OnCalendar=weekly
+          Persistent=true
+
+          [Install]
+          WantedBy=timers.target
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Enable and start system update timer
+      systemctl:
+        name: system-update.timer
+        enabled: yes
+        state: started
+        daemon_reload: yes
+
+    - name: Create user-specific update systemd service unit
+      copy:
+        dest: /home/boris/.config/systemd/user/update.service
+        content: |
+          [Unit]
+          Description=Update user packages (flatpak, brew, kitty, omz)
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=oneshot
+          ExecStartPre=/bin/sh -c 'until ping -c1 -W1 github.com >/dev/null 2>&1; do sleep 2; done'
+          ExecStart=%h/Workspace/os_bootstrap/linux/{{ 'fedora' if ansible_os_family == 'RedHat' else 'debian' }}/update.sh
+        owner: boris
+        group: boris
+        mode: "0644"
+
+    - name: Create user-specific update systemd timer unit
+      copy:
+        dest: /home/boris/.config/systemd/user/update.timer
+        content: |
+          [Unit]
+          Description=Run user update daily
+
+          [Timer]
+          OnCalendar=daily
+          Persistent=true
+
+          [Install]
+          WantedBy=timers.target
+        owner: boris
+        group: boris
+        mode: "0644"
+
+    - name: Enable user-specific update timer
+      systemctl:
+        name: update.timer
+        scope: user
+        enabled: yes
+        state: started
+        daemon_reload: yes
+      become: yes
+      become_user: boris
+
+    - name: Enable and start Syncthing user service
+      systemctl:
+        name: syncthing.service
+        scope: user
+        enabled: yes
+        state: started
+        daemon_reload: yes
+      become: yes
+      become_user: boris
