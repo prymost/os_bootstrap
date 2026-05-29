@@ -114,16 +114,16 @@
     # ── 3. FLATPAK PACKAGES ──────────────────────────────────────────────────
 
     - name: Add Flathub repository
-      flatpak_repo:
+      community.general.flatpak_remote:
         name: flathub
         state: present
         method: user
-        uuid: https://flathub.org/repo/flathub.flatpakrepo
+        flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
       become: yes
       become_user: boris
 
     - name: Install Flatpak applications declaratively
-      flatpak:
+      community.general.flatpak:
         name: "{{ item }}"
         state: present
         method: user
@@ -172,7 +172,7 @@
         reload: yes
 
     - name: Enable periodic SSD TRIM service
-      systemctl:
+      ansible.builtin.systemd:
         name: fstrim.timer
         enabled: yes
         state: started
@@ -324,11 +324,13 @@
         dest: /etc/systemd/system/system-update.timer
         content: |
           [Unit]
-          Description=Run system update weekly
+          Description=Run daily system updates
 
           [Timer]
-          OnCalendar=weekly
+          OnCalendar=daily
           Persistent=true
+          OnBootSec=15min
+          OnUnitActiveSec=1d
 
           [Install]
           WantedBy=timers.target
@@ -337,7 +339,7 @@
         mode: "0644"
 
     - name: Enable and start system update timer
-      systemctl:
+      ansible.builtin.systemd:
         name: system-update.timer
         enabled: yes
         state: started
@@ -365,11 +367,13 @@
         dest: /home/boris/.config/systemd/user/update.timer
         content: |
           [Unit]
-          Description=Run user update daily
+          Description=Run daily system updates and on wakeup
 
           [Timer]
           OnCalendar=daily
           Persistent=true
+          OnBootSec=15min
+          OnUnitActiveSec=1d
 
           [Install]
           WantedBy=timers.target
@@ -378,7 +382,7 @@
         mode: "0644"
 
     - name: Enable user-specific update timer
-      systemctl:
+      ansible.builtin.systemd:
         name: update.timer
         scope: user
         enabled: yes
@@ -388,7 +392,7 @@
       become_user: boris
 
     - name: Enable and start Syncthing user service
-      systemctl:
+      ansible.builtin.systemd:
         name: syncthing.service
         scope: user
         enabled: yes

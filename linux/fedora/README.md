@@ -64,3 +64,9 @@ Skip earlier steps and run the playbook starting from a specific task name:
 ansible-playbook -K ansible/local.yml --start-at-task="Ensure user shell is Zsh"
 ```
 
+### 5. Run Step-by-Step (Interactive Mode)
+Step through the playbook one task at a time. Ansible will prompt you before running each task, allowing you to run (`y`), skip (`n`), or abort (`q`):
+```bash
+ansible-playbook -K ansible/local.yml --step
+```
+
