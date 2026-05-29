@@ -20,6 +20,37 @@ To provision your Pop!_OS/Debian workstation:
 
 ---
 
+## 🛠️ Useful Ansible Commands
+
+Here are some helpful commands for testing, verifying, and maintaining your setup:
+
+### 1. Dry Run / Simulating Changes (Check Mode)
+Check which changes Ansible would apply to your workstation without actually modifying any files:
+```bash
+ansible-playbook -K ansible/local.yml --check
+```
+
+### 2. View File Differences (Diff Mode)
+Inspect configuration file differences (like udev rules, sysctl settings, etc.) before writing changes:
+```bash
+ansible-playbook -K ansible/local.yml --check --diff
+```
+
+### 3. Syntax Verification
+Ensure there are no YAML or structural syntax errors in your playbook or variables:
+```bash
+ansible-playbook ansible/local.yml --syntax-check
+```
+
+### 4. Resume/Start at a Specific Task
+Skip earlier steps and run the playbook starting from a specific task name:
+```bash
+ansible-playbook -K ansible/local.yml --start-at-task="Ensure user shell is Zsh"
+```
+
+
+---
+
 ## 📁 Directory Structure
 
 *   **`system-update.sh`** — Executed weekly by root systemd timer to update system packages.

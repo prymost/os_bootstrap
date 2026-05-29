@@ -1,6 +1,10 @@
 I will record changes to this file just so i don't need to look at commit history every time
 
 # Changelog
+2026-05-28:
+- Migrated Pop!_OS and Fedora KDE configurations to a unified declarative Ansible playbook (`ansible/local.yml`).
+- Added automated Fedora Kickstart config (`ks.cfg`) and custom ISO builder script (`build_iso.sh`).
+
 2026-04-18:
 - Updated Kitty config to match iTerm2
 - Added ZSA stuff and key mapping overrides for Cosmic

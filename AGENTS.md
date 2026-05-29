@@ -1,40 +1,44 @@
 # Project Overview
 
-This project contains a set of bootstrap scripts for automating the setup of personal machines across multiple platforms: Windows 11, macOS, WSL Ubuntu, and PopOS/Debian. The scripts are designed to be platform-specific, simple, and maintainable without shared dependencies.
+This project contains a set of bootstrap scripts and playbooks for automating the setup of personal machines across multiple platforms: Windows 11, macOS, WSL Ubuntu, and Linux Desktops (Fedora and Pop!_OS/Debian).
 
 ## Key Technologies
 
 *   **Windows:** PowerShell, Winget
 *   **macOS:** Bash, Homebrew
-*   **Linux (Debian/WSL):** Bash, apt
+*   **Linux (Fedora & Pop!_OS/Debian):** Ansible, DNF, APT, Flatpak, Linuxbrew, Systemd Timers
+*   **Fedora Automation:** Anaconda Kickstart (`ks.cfg`), custom ISO builder (`xorriso`)
 
 ## Building and Running
 
-The scripts are intended to be run directly. Here are the commands for each platform:
-
-*   **Windows 11 (as Administrator):**
-    ```powershell
-    PowerShell -ExecutionPolicy Bypass -File windows/bootstrap-windows11.ps1
-    ```
-
-*   **macOS:**
+### 1. Linux Desktops (Ansible)
+Linux setup is declarative, using Ansible targetting `localhost`.
+*   **Run configuration**:
     ```bash
-    ./mac/bootstrap.sh
+    ansible-playbook -K ansible/local.yml
+    ```
+*   **Fedora Semi-Automated ISO Build**:
+    ```bash
+    ./linux/fedora/build_iso.sh
     ```
 
-*   **WSL Ubuntu:**
-    ```bash
-    ./windows/wsl_scripts/bootstrap.sh
-    ```
+### 2. Windows 11 (as Administrator)
+```powershell
+PowerShell -ExecutionPolicy Bypass -File windows/bootstrap-windows11.ps1
+```
 
-*   **PopOS/Debian Linux:**
-    ```bash
-    ./linux/debian/bootstrap.sh
-    ```
+### 3. macOS
+```bash
+./mac/bootstrap.sh
+```
+
+### 4. WSL Ubuntu
+```bash
+./windows/wsl_scripts/bootstrap.sh
+```
 
 ## Development Conventions
 
-*   **Platform-Specific Scripts:** Each platform has its own set of scripts, tailored to the specific package managers and tools of that OS.
-*   **Modularity:** The bootstrap scripts are broken down into smaller, modular scripts for different stages of the setup process (e.g., initial setup, package installation, OS configuration).
-*   **Shared Configuration:** There is a `shared` directory that contains configuration files that are common across all platforms, such as `.zshrc`.
-*   **Idempotency:** The scripts are designed to be idempotent, meaning they can be run multiple times without causing issues. They check for existing installations and configurations before making changes.
+*   **Declarative Infrastructure as Code (Linux)**: Package installs, purges, configurations, systemd services, and desktop custom shortcuts are specified in `ansible/local.yml` and variables in `ansible/vars/`.
+*   **Idempotency**: The Ansible playbook and shell scripts are designed to be run multiple times safely without side effects.
+*   **Shared Configuration**: The `shared` directory contains shared templates (e.g. `.zshrc`, `kitty.conf`, `.vimrc`) restored via `shared/manage_configs.sh`.
