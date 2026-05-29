@@ -1,6 +1,0 @@
-[Unit]
-Description=Update system packages (apt, calibre)
-
-[Service]
-Type=oneshot
-ExecStart=/home/boris/Workspace/os_bootstrap/linux/debian/system-update.sh

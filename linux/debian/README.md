@@ -1,120 +1,63 @@
-# PopOS/Debian Setup Scripts
+# PopOS/Debian Setup with Ansible
 
-My personal scripts for setting up and maintaining a PopOS or Debian Linux desktop with development tools and applications.
+This directory contains the update scripts and documentation for managing a Pop!_OS or Debian desktop environment using the unified Ansible provisioning system.
 
 ## 🚀 Quick Start
 
-1. **Run compatibility check** (recommended):
+To provision your Pop!_OS/Debian workstation:
+
+1. **Install Ansible**:
    ```bash
-   ./check_compatibility.sh
+   sudo apt-get update
+   sudo apt-get install -y ansible git
    ```
 
-2. **Run full bootstrap**:
+2. **Run the Playbook**:
+   From the repository root:
    ```bash
-   ./bootstrap.sh
+   ansible-playbook -K ansible/local.yml
    ```
 
-## 📁 Script Overview
+---
 
-- **`bootstrap.sh`** - Main entry point. Auto-detects the running desktop (`COSMIC` or `GNOME`) via `XDG_CURRENT_DESKTOP` and prompts if unset.
-- **`check_compatibility.sh`** - Validates system compatibility and reports detected desktop/session type before setup.
+## 📁 Directory Structure
 
-### Shared setup (runs for all desktops)
-- **`setup/initial.sh`** - Installs essential build tools and system packages
-- **`setup/system_tweaks.sh`** - Applies kernel-level tweaks: swappiness, inotify limits, SSD TRIM
-- **`setup/my_installs.sh`** - Installs common development tools and applications, configures Zsh/Oh My Zsh
+*   **`system-update.sh`** — Executed weekly by root systemd timer to update system packages.
+*   **`update.sh`** — Executed daily by user systemd timer to update user packages (Flatpak, Homebrew, Oh My Zsh, Kitty).
 
-### Desktop-specific setup
-Each desktop has a `packages.sh` (desktop-specific apt/flatpak installs) and `ui_tweaks.sh` (appearance, shortcuts, key repeat, idle timeout):
-
-| | GNOME (`setup/gnome/`) | COSMIC (`setup/cosmic/`) |
-|---|---|---|
-| **packages.sh** | `gnome-sushi`, `xsel`, `flameshot` (apt) | `wl-clipboard`, `flameshot` (Flatpak) |
-| **ui_tweaks.sh** | `gsettings`: dark mode, idle, shortcuts | RON files in `~/.config/cosmic/`: dark mode, idle, shortcuts |
-
-## 🛠 Alternative Usage
-
-### Running Individual Scripts
-```bash
-# Core system tools only
-./setup/initial.sh
-
-# Kernel/system tweaks only
-./setup/system_tweaks.sh
-
-# Common applications only
-./setup/my_installs.sh
-
-# Desktop-specific packages and UI (pick one)
-./setup/cosmic/packages.sh && ./setup/cosmic/ui_tweaks.sh
-./setup/gnome/packages.sh  && ./setup/gnome/ui_tweaks.sh
-```
+---
 
 ## 🔄 Automated Updates
 
-The bootstrap process automatically configures and enables systemd timers to keep the system and applications up-to-date. The setup is handled by the `setup/automations.sh` script, so manual configuration is no longer required after running the main bootstrap.
+The Ansible playbook automatically configures systemd timers to run update automation tasks in the background:
 
-The update process is split into two parts for better security and management:
+### System-wide Updates (Apt & Calibre)
+*   **Script:** `system-update.sh` (runs with root privileges)
+*   **Timer:** `/etc/systemd/system/system-update.timer` (runs weekly)
+*   **Check status:** `sudo systemctl list-timers | grep update`
+*   **Check logs:** `sudo journalctl -u system-update.service --since "today"`
 
-### System-wide Updates
+### User-specific Updates (Flatpak, Homebrew, Kitty, OMZ)
+*   **Script:** `update.sh` (runs as user `boris`)
+*   **Timer:** `~/.config/systemd/user/update.timer` (runs daily)
+*   **Check status:** `systemctl --user list-timers | grep update`
+*   **Check logs:** `journalctl --user -u update.service --since "today"`
 
-- **Script:** `system-update.sh`
-- **Scope:** Handles system-level packages that require root privileges, such as `apt` packages and Calibre.
-- **Mechanism:** A system-wide systemd timer (`/etc/systemd/system/system-update.timer`) runs the script as the `root` user daily.
+---
 
-### User-specific Updates
+## 🎯 Post-Installation Steps
 
-- **Script:** `update.sh`
-- **Scope:** Handles user-specific tools and applications like Homebrew, Flatpak, Oh My Zsh, and Kitty.
-- **Mechanism:** A user-level systemd timer (`~/.config/systemd/user/update.timer`) runs the script as the current user daily and upon waking from sleep.
+After running the playbook, verify the configuration:
 
-### Verifying the Timers
-
-You can check the status of the automated timers to see when they are scheduled to run next.
-
-- **To check the system timer:**
-  ```bash
-  sudo systemctl list-timers | grep update
-  ```
-
-- **To check the user timer:**
-  ```bash
-  systemctl --user list-timers | grep update
-  ```
-
-### Checking Update Logs
-
-To see the output and confirm that the update scripts ran successfully, you can check their logs using `journalctl`.
-
-- **To check the system update log (for apt, etc.):**
-  ```bash
-  sudo journalctl -u system-update.service --since "today"
-  ```
-
-- **To check the user update log (for Homebrew, Flatpak, etc.):**
-  ```bash
-  journalctl --user -u update.service --since "today"
-  ```
-
-If you need to re-apply the automation setup for any reason, you can run the script directly:
-```bash
-./setup/automations.sh
-```
-
-## 🎯 Post-Installation
-
-After running the bootstrap:
-
-**Configure Git**:
+1. **Configure Git**:
    ```bash
    git config --global user.name "Your Name"
    git config --global user.email "your.email@example.com"
    ```
 
-**Set up SSH key** for GitHub:
+2. **Set up SSH key** for GitHub:
    ```bash
    ssh-keygen -t ed25519 -C "your.email@example.com"
-   # add it to ssh agent
    eval "$(ssh-agent -s)"
    ssh-add ~/.ssh/id_ed25519
    ```

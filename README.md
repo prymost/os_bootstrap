@@ -1,45 +1,47 @@
 # Bootstrap Scripts
 
-Automated setup scripts for my personal machines across multiple platforms
+Automated setup scripts for personal machine provisioning across multiple platforms.
 
-## Quick Start
+## 🚀 Quick Start
+
+### 1. Linux Desktops (Fedora / Pop!_OS / Debian)
+Workstation configuration on Linux is declarative, managed via Ansible:
 
 ```bash
-# Windows 11 (as Administrator)
-PowerShell -ExecutionPolicy Bypass -File windows/bootstrap-windows11.ps1
+# 1. Install Ansible (if not already installed)
+# On Fedora:
+sudo dnf install -y ansible git
+# On Debian/Pop!_OS:
+sudo apt-get update && sudo apt-get install -y ansible git
 
-# macOS
-./mac/bootstrap.sh
-
-# WSL Ubuntu
-./windows/wsl_scripts/bootstrap.sh
-
-# PopOS/Debian Linux
-./linux/debian/bootstrap.sh
+# 2. Run the playbook
+ansible-playbook -K ansible/local.yml
 ```
 
-## How It Works
+*Note: For a fully automated Fedora KDE installation, see the [Kickstart instructions](linux/fedora/README.md).*
 
-Each platform has its own optimized approach:
+### 2. Windows 11 (as Administrator)
+```powershell
+PowerShell -ExecutionPolicy Bypass -File windows/bootstrap-windows11.ps1
+```
 
-- **Windows**: Uses existing WingetApps module with inline application list for reliability
-- **macOS**: Uses static Brewfile for traditional Homebrew workflow
-- **WSL Ubuntu**: Direct package arrays for simplicity and speed
-- **PopOS/Debian**: Direct package arrays with special installation handling for complex apps
+### 3. macOS
+```bash
+./mac/bootstrap.sh
+```
 
-All scripts are designed to be platform-specific, simple, and maintainable without shared dependencies.
+### 4. WSL Ubuntu
+```bash
+./windows/wsl_scripts/bootstrap.sh
+```
 
-## Platform Details
+---
 
-- [mac/README.md](mac/README.md) - macOS setup with Homebrew
-- [windows/README.md](windows/README.md) - Windows 11 bootstrap with interactive menu
-- [windows/wsl_scripts/README.md](windows/wsl_scripts/README.md) - WSL Ubuntu development environment
-- [linux/debian/README.md](linux/debian/README.md) - PopOS/Debian desktop setup
-- [shared/](shared/) - Shared configuration templates (.zshrc used by all platforms)
+## 📁 Repository Overview
 
-## Supported Platforms
-
-- ✅ **Windows 11** - Full desktop bootstrap with WSL2
-- ✅ **macOS** - Apple Silicon & Intel support
-- ✅ **WSL Ubuntu** - Development environment in Windows
-- ✅ **PopOS/Debian** - Linux desktop replacement
+*   **[`ansible/`](file:///home/boris/Workspace/os_bootstrap/ansible/)** — Unified declarative configuration playbook (`local.yml`) and OS-specific variables (`vars/`).
+*   **[`linux/fedora/`](file:///home/boris/Workspace/os_bootstrap/linux/fedora/)** — Kickstart installer automation configuration and custom ISO builder.
+*   **[`linux/debian/`](file:///home/boris/Workspace/os_bootstrap/linux/debian/)** — Update timers and scripts for Debian/Pop!_OS environments.
+*   **[`mac/`](file:///home/boris/Workspace/os_bootstrap/mac/)** — macOS configuration using Homebrew (Brewfile).
+*   **[`windows/`](file:///home/boris/Workspace/os_bootstrap/windows/)** — Windows 11 setup scripts and WSL configurations.
+*   **[`shared/`](file:///home/boris/Workspace/os_bootstrap/shared/)** — Common configuration files (e.g., `.zshrc`, `kitty.conf`) restored to home directories.

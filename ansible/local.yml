@@ -92,6 +92,23 @@
           - code
         state: present
 
+    - name: Check if Calibre is installed
+      command: command -v calibre
+      register: calibre_check
+      failed_when: false
+      changed_when: false
+
+    - name: Ensure xcb-util-cursor/libxcb-cursor0 is installed (Calibre dependency)
+      package:
+        name: "{{ 'xcb-util-cursor' if ansible_os_family == 'RedHat' else 'libxcb-cursor0' }}"
+        state: present
+      when: calibre_check.rc != 0
+
+    - name: Install Calibre using the official website installer script
+      shell: wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sh /dev/stdin
+      when: calibre_check.rc != 0
+
+
 
 
     # ── 3. FLATPAK PACKAGES ──────────────────────────────────────────────────
