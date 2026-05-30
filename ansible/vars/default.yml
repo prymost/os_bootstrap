@@ -21,7 +21,7 @@ common_other_packages:
 flatpak_packages:
   - com.logseq.Logseq
   - org.prismlauncher.PrismLauncher
-  - org.pinta_project.Pinta
+  - com.github.PintaProject.Pinta
 
 homebrew_packages:
   - kubectl
@@ -32,3 +32,15 @@ purged_os_packages:
   - kontact*
   - korganizer*
   - dragon
+
+# NAS Mount Variables (NFS)
+nas_nfs_src: "homecloud.local:/volume1/SharedLand"
+nas_mount_point: "mnt/SharedLand"
+nas_symlink_src: "mnt/SharedLand/SyncFolder"
+nas_symlink_dest: "SyncFolder"
+
+# Secondary HDD Mount Variables
+hdd_uuid: "93e35c87-80a1-497c-85d0-a16b9448ea10"
+hdd_mount_point: "/media/boris/DataDrive"
+hdd_fstype: "auto"
+hdd_mount_opts: "nosuid,nodev,nofail,x-gvfs-show"

@@ -10,6 +10,7 @@ os_cli_dependencies:
   - procps-ng
   - wl-clipboard
   - xcb-util-cursor
+  - nfs-utils
 
 os_dev_packages:
   - moby-engine

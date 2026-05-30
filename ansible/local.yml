@@ -24,17 +24,24 @@
         filename: vscode
       when: ansible_os_family == 'Debian'
 
-    - name: (Debian) Add Brave Browser GPG key
-      apt_key:
+    - name: (Debian) Remove conflicting legacy Brave Browser list file
+      ansible.builtin.file:
+        path: /etc/apt/sources.list.d/brave-browser.list
+        state: absent
+      when: ansible_os_family == 'Debian'
+
+    - name: (Debian) Download Brave Browser GPG keyring
+      ansible.builtin.get_url:
         url: https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
-        state: present
+        dest: /usr/share/keyrings/brave-browser-archive-keyring.gpg
+        mode: '0644'
       when: ansible_os_family == 'Debian'
 
     - name: (Debian) Add Brave Browser repository
       apt_repository:
-        repo: "deb [arch=amd64] https://brave-browser-apt-release.s3.brave.com/ stable main"
+        repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main"
         state: present
-        filename: brave-browser
+        filename: brave-browser-release
       when: ansible_os_family == 'Debian'
 
     - name: (RedHat) Add VS Code repository
@@ -207,7 +214,7 @@
       register: udev_rules
 
     - name: Reload udev rules
-      command: udevadm control --reload-rules && udevadm trigger
+      ansible.builtin.shell: udevadm control --reload-rules && udevadm trigger
       when: udev_rules.changed
 
     # ── 7. DOTFILES RESTORATION ──────────────────────────────────────────────
@@ -400,3 +407,48 @@
         daemon_reload: yes
       become: yes
       become_user: boris
+
+    # ── 11. NAS AUTOMOUNT (NFS) ──────────────────────────────────────────────
+
+    - name: Ensure parent mount directory exists
+      ansible.builtin.file:
+        path: "/home/boris/{{ nas_mount_point }}"
+        state: directory
+        owner: boris
+        group: boris
+        mode: '0755'
+
+    - name: Configure NFS mount in /etc/fstab with systemd automount
+      ansible.posix.mount:
+        path: "/home/boris/{{ nas_mount_point }}"
+        src: "{{ nas_nfs_src }}"
+        fstype: nfs
+        opts: "noauto,x-systemd.automount,x-systemd.idle-timeout=600,x-systemd.device-timeout=5,timeo=14,_netdev"
+        state: present
+
+    - name: Create symlink from home directory to NAS SyncFolder
+      ansible.builtin.file:
+        src: "/home/boris/{{ nas_symlink_src }}"
+        dest: "/home/boris/{{ nas_symlink_dest }}"
+        state: link
+        force: yes
+        owner: boris
+        group: boris
+
+    # ── 12. SECONDARY HARD DRIVE MOUNT ───────────────────────────────────────
+
+    - name: Ensure secondary HDD mount directory exists
+      ansible.builtin.file:
+        path: "{{ hdd_mount_point }}"
+        state: directory
+        owner: boris
+        group: boris
+        mode: '0755'
+
+    - name: Configure secondary HDD mount in /etc/fstab
+      ansible.posix.mount:
+        path: "{{ hdd_mount_point }}"
+        src: "UUID={{ hdd_uuid }}"
+        fstype: "{{ hdd_fstype }}"
+        opts: "{{ hdd_mount_opts }}"
+        state: present

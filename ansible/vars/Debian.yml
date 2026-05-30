@@ -10,6 +10,7 @@ os_cli_dependencies:
   - gnupg
   - lsb-release
   - wl-clipboard
+  - nfs-common
 
 os_dev_packages:
   - docker.io
