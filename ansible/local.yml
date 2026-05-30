@@ -217,14 +217,22 @@
       ansible.builtin.shell: udevadm control --reload-rules && udevadm trigger
       when: udev_rules.changed
 
-    # ── 7. DOTFILES RESTORATION ──────────────────────────────────────────────
+    # ── 7. DOTFILES RESTORATION (GNU STOW) ───────────────────────────────────
 
-    - name: Run configurations restoration script
-      command: /home/boris/Workspace/os_bootstrap/shared/manage_configs.sh restore
+    - name: Remove existing physical dotfiles to prevent Stow conflicts
+      ansible.builtin.file:
+        path: "/home/boris/{{ item }}"
+        state: absent
+      loop:
+        - .zshrc
+        - .vimrc
+        - .config/kitty/kitty.conf
+
+    - name: Link dotfiles using GNU Stow
+      ansible.builtin.command:
+        cmd: "stow -d /home/boris/Workspace/os_bootstrap/shared -t /home/boris zsh vim kitty"
       become: yes
       become_user: boris
-      register: config_restore
-      failed_when: false # Don't fail if configs are not initialized yet
 
     # ── 8. USER ENVIRONMENT (ZSH, OMZ, KITTY) ────────────────────────────────
 

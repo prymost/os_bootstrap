@@ -9,6 +9,7 @@ common_cli_packages:
   - timeshift
   - keychain
   - syncthing
+  - stow
 
 common_dev_packages:
   - zsh

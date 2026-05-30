@@ -41,4 +41,4 @@ PowerShell -ExecutionPolicy Bypass -File windows/bootstrap-windows11.ps1
 
 *   **Declarative Infrastructure as Code (Linux)**: Package installs, purges, configurations, systemd services, and desktop custom shortcuts are specified in `ansible/local.yml` and variables in `ansible/vars/`.
 *   **Idempotency**: The Ansible playbook and shell scripts are designed to be run multiple times safely without side effects.
-*   **Shared Configuration**: The `shared` directory contains shared templates (e.g. `.zshrc`, `kitty.conf`, `.vimrc`) restored via `shared/manage_configs.sh`.
+*   **Shared Configuration**: The `shared` directory contains shared templates (e.g. `.zshrc`, `kitty.conf`, `.vimrc`) linked via GNU Stow.
