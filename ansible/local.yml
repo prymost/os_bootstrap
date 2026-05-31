@@ -494,104 +494,104 @@
         group: boris
         mode: "0755"
 
-    # - name: Ensure BorgBackup repository is initialized
-    #   ansible.builtin.command:
-    #     cmd: "borg init --encryption=none /home/boris/Backup/borg-repo"
-    #     creates: "/home/boris/Backup/borg-repo/config"
-    #   become: yes
-    #   become_user: boris
-    #   register: borg_init
-    #   failed_when: false
+    - name: Ensure BorgBackup repository is initialized
+      ansible.builtin.command:
+        cmd: "borg init --encryption=none {{ borg_repository }}"
+        creates: "{{ borg_repository }}/config"
+      become: yes
+      become_user: boris
+      register: borg_init
+      failed_when: false
 
-    # - name: Create BorgBackup execution script
-    #   ansible.builtin.copy:
-    #     dest: /home/boris/.local/bin/borg-backup.sh
-    #     content: |
-    #       #!/usr/bin/env bash
-    #       set -euo pipefail
+    - name: Create BorgBackup execution script
+      ansible.builtin.copy:
+        dest: /home/boris/.local/bin/borg-backup.sh
+        content: |
+          #!/usr/bin/env bash
+          set -euo pipefail
 
-    #       # Define Borg Repository
-    #       export BORG_REPO="/home/boris/Backup/borg-repo"
+          # Define Borg Repository
+          export BORG_REPO="{{ borg_repository }}"
 
-    #       # Ensure the mount point is active (trigger automount by accessing it)
-    #       ls "${BORG_REPO}" >/dev/null 2>&1 || true
+          # Ensure the mount point is active (trigger automount by accessing it)
+          ls "${BORG_REPO}" >/dev/null 2>&1 || true
 
-    #       # Verify that the Borg config file exists (confirming mount is active)
-    #       if [[ ! -f "${BORG_REPO}/config" ]]; then
-    #           echo "⚠️ Error: Borg repository is not accessible. Is the NAS mounted?" >&2
-    #           exit 1
-    #       fi
+          # Verify that the Borg config file exists (confirming mount is active)
+          if [[ ! -f "${BORG_REPO}/config" ]]; then
+              echo "⚠️ Error: Borg repository is not accessible. Is the NAS mounted?" >&2
+              exit 1
+          fi
 
-    #       echo "🚀 Starting BorgBackup process..."
+          echo "🚀 Starting BorgBackup process..."
 
-    #       # Run Borg create
-    #       borg create \
-    #           --stats \
-    #           --progress \
-    #           --compression lz4 \
-    #           ::"backup-$(date +%Y-%m-%d-%H%M%S)" \
-    #           {{ borg_backup_sources | join(' ') }}
+          # Run Borg create
+          borg create \
+              --stats \
+              --progress \
+              --compression lz4 \
+              ::"backup-$(date +%Y-%m-%d-%H%M%S)" \
+              {{ borg_backup_sources | join(' ') }}
 
-    #       echo "🧹 Pruning old archives..."
-    #       borg prune \
-    #           --list \
-    #           --keep-daily=7 \
-    #           --keep-weekly=4 \
-    #           --keep-monthly=12
+          echo "🧹 Pruning old archives..."
+          borg prune \
+              --list \
+              --keep-daily=7 \
+              --keep-weekly=4 \
+              --keep-monthly=12
 
-    #       echo "✅ Backup process complete!"
-    #     owner: boris
-    #     group: boris
-    #     mode: '0755'
+          echo "✅ Backup process complete!"
+        owner: boris
+        group: boris
+        mode: '0755'
 
-    # - name: Ensure user systemd config directory exists
-    #   ansible.builtin.file:
-    #     path: /home/boris/.config/systemd/user
-    #     state: directory
-    #     owner: boris
-    #     group: boris
-    #     mode: '0755'
+    - name: Ensure user systemd config directory exists
+      ansible.builtin.file:
+        path: /home/boris/.config/systemd/user
+        state: directory
+        owner: boris
+        group: boris
+        mode: '0755'
 
-    # - name: Create BorgBackup systemd service unit
-    #   ansible.builtin.copy:
-    #     dest: /home/boris/.config/systemd/user/borg-backup.service
-    #     content: |
-    #       [Unit]
-    #       Description=Daily BorgBackup task to Synology NAS
-    #       After=network-online.target
-    #       Wants=network-online.target
+    - name: Create BorgBackup systemd service unit
+      ansible.builtin.copy:
+        dest: /home/boris/.config/systemd/user/borg-backup.service
+        content: |
+          [Unit]
+          Description=Daily BorgBackup task to Synology NAS
+          After=network-online.target
+          Wants=network-online.target
 
-    #       [Service]
-    #       Type=oneshot
-    #       ExecStartPre=/bin/sh -c 'until ping -c1 -W1 homecloud.local >/dev/null 2>&1; do sleep 5; done'
-    #       ExecStart=/home/boris/.local/bin/borg-backup.sh
-    #     owner: boris
-    #     group: boris
-    #     mode: '0644'
+          [Service]
+          Type=oneshot
+          ExecStartPre=/bin/sh -c 'until ping -c1 -W1 homecloud.local >/dev/null 2>&1; do sleep 5; done'
+          ExecStart=/home/boris/.local/bin/borg-backup.sh
+        owner: boris
+        group: boris
+        mode: '0644'
 
-    # - name: Create BorgBackup systemd timer unit
-    #   ansible.builtin.copy:
-    #     dest: /home/boris/.config/systemd/user/borg-backup.timer
-    #     content: |
-    #       [Unit]
-    #       Description=Run BorgBackup daily and persist across shutdowns
+    - name: Create BorgBackup systemd timer unit
+      ansible.builtin.copy:
+        dest: /home/boris/.config/systemd/user/borg-backup.timer
+        content: |
+          [Unit]
+          Description=Run BorgBackup daily and persist across shutdowns
 
-    #       [Timer]
-    #       OnCalendar=daily
-    #       Persistent=true
+          [Timer]
+          OnCalendar=daily
+          Persistent=true
 
-    #       [Install]
-    #       WantedBy=timers.target
-    #     owner: boris
-    #     group: boris
-    #     mode: '0644'
+          [Install]
+          WantedBy=timers.target
+        owner: boris
+        group: boris
+        mode: '0644'
 
-    # - name: Enable and start BorgBackup user timer
-    #   ansible.builtin.systemd:
-    #     name: borg-backup.timer
-    #     scope: user
-    #     enabled: yes
-    #     state: started
-    #     daemon_reload: yes
-    #   become: yes
-    #   become_user: boris
+    - name: Enable and start BorgBackup user timer
+      ansible.builtin.systemd:
+        name: borg-backup.timer
+        scope: user
+        enabled: yes
+        state: started
+        daemon_reload: yes
+      become: yes
+      become_user: boris

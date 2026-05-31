@@ -8,7 +8,7 @@ common_cli_packages:
   - micro
   - timeshift
   - keychain
-  - syncthing
+  - borgbackup
   - stow
 
 common_dev_packages:
@@ -34,11 +34,16 @@ purged_os_packages:
   - korganizer*
   - dragon
 
-# NAS Mount Variables (NFS)
-nas_nfs_src: "homecloud.local:/volume1/SharedLand"
-nas_mount_point: "mnt/SharedLand"
-nas_symlink_src: "mnt/SharedLand/SyncFolder"
-nas_symlink_dest: "SyncFolder"
+# BorgBackup Variables
+borg_repository: "/home/boris/Backup/borg-repo"
+borg_backup_sources:
+  - "/media/boris/DataDrive/Documents"
+  - "/media/boris/DataDrive/all Nata"
+  - "/media/boris/DataDrive/Music"
+  - "/media/boris/DataDrive/Photos"
+  - "/media/boris/DataDrive/Resources"
+  - "/media/boris/DataDrive/Roms"
+  - "/media/boris/DataDrive/Video"
 
 # Secondary HDD Mount Variables
 hdd_uuid: "93e35c87-80a1-497c-85d0-a16b9448ea10"
