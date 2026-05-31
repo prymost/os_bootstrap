@@ -23,6 +23,7 @@ flatpak_packages:
   - com.logseq.Logseq
   - org.prismlauncher.PrismLauncher
   - com.github.PintaProject.Pinta
+  - io.kinvolk.Headlamp
 
 homebrew_packages:
   - kubectl

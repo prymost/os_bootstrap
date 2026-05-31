@@ -494,6 +494,14 @@
         group: boris
         mode: "0755"
 
+    - name: Download and install custom psort tool
+      ansible.builtin.get_url:
+        url: https://github.com/prymost/psort/releases/latest/download/psort-linux
+        dest: /home/boris/.local/bin/psort
+        mode: "0755"
+        owner: boris
+        group: boris
+
     - name: Ensure BorgBackup repository is initialized
       ansible.builtin.command:
         cmd: "borg init --encryption=none {{ borg_repository }}"
