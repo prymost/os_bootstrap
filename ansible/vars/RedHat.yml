@@ -12,6 +12,10 @@ os_cli_dependencies:
   - xcb-util-cursor
   - nfs-utils
 
+# OS-Specific NAS Mounts (NFS for Fedora)
+nas_mounts:
+  - { path: "mnt/SharedLand", src: "homecloud.local:/volume1/SharedLand", fstype: "nfs", opts: "noauto,x-systemd.automount,x-systemd.idle-timeout=600,x-systemd.device-timeout=5,timeo=14,_netdev" }
+
 os_dev_packages:
   - moby-engine
 

@@ -34,7 +34,7 @@
       ansible.builtin.get_url:
         url: https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
         dest: /usr/share/keyrings/brave-browser-archive-keyring.gpg
-        mode: '0644'
+        mode: "0644"
       when: ansible_os_family == 'Debian'
 
     - name: (Debian) Add Brave Browser repository
@@ -72,8 +72,6 @@
         state: present
         disable_gpg_check: yes
       when: ansible_os_family == 'RedHat'
-
-
 
     # ── 2. SYSTEM PACKAGE MANAGEMENT (DECLARATIVE) ───────────────────────────
 
@@ -114,9 +112,6 @@
     - name: Install Calibre using the official website installer script
       shell: wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sh /dev/stdin
       when: calibre_check.rc != 0
-
-
-
 
     # ── 3. FLATPAK PACKAGES ──────────────────────────────────────────────────
 
@@ -219,14 +214,21 @@
 
     # ── 7. DOTFILES RESTORATION (GNU STOW) ───────────────────────────────────
 
-    - name: Remove existing physical dotfiles to prevent Stow conflicts
-      ansible.builtin.file:
+    - name: Check status of dotfiles to prevent overwriting symlinks
+      ansible.builtin.stat:
         path: "/home/boris/{{ item }}"
-        state: absent
       loop:
         - .zshrc
         - .vimrc
         - .config/kitty/kitty.conf
+      register: dotfile_stats
+
+    - name: Remove existing physical dotfiles to prevent Stow conflicts
+      ansible.builtin.file:
+        path: "{{ item.stat.path }}"
+        state: absent
+      loop: "{{ dotfile_stats.results }}"
+      when: item.stat.exists and not item.stat.islnk
 
     - name: Link dotfiles using GNU Stow
       ansible.builtin.command:
@@ -406,42 +408,63 @@
       become: yes
       become_user: boris
 
-    - name: Enable and start Syncthing user service
-      ansible.builtin.systemd:
-        name: syncthing.service
-        scope: user
-        enabled: yes
-        state: started
-        daemon_reload: yes
-      become: yes
-      become_user: boris
+    # ── 11. NAS AUTOMOUNT CONFIGURATION ──────────────────────────────────────
 
-    # ── 11. NAS AUTOMOUNT (NFS) ──────────────────────────────────────────────
+    - name: Check status of legacy NFS paths
+      ansible.builtin.stat:
+        path: "/home/boris/{{ item }}"
+      loop:
+        - SyncFolder
+        - Backup
+      register: legacy_nas_stats
 
-    - name: Ensure parent mount directory exists
+    - name: (Debian) Remove legacy NFS symlinks to prevent directory conflicts
       ansible.builtin.file:
-        path: "/home/boris/{{ nas_mount_point }}"
+        path: "{{ item.stat.path }}"
+        state: absent
+      loop: "{{ legacy_nas_stats.results }}"
+      when:
+        - ansible_os_family == 'Debian'
+        - item.stat.exists
+        - item.stat.islnk
+
+    - name: Ensure NAS mount directories exist
+      ansible.builtin.file:
+        path: "/home/boris/{{ item.path }}"
         state: directory
         owner: boris
         group: boris
-        mode: '0755'
+        mode: "0755"
+      loop: "{{ nas_mounts }}"
 
-    - name: Configure NFS mount in /etc/fstab with systemd automount
+    - name: Configure NAS mounts in /etc/fstab with systemd automount
       ansible.posix.mount:
-        path: "/home/boris/{{ nas_mount_point }}"
-        src: "{{ nas_nfs_src }}"
-        fstype: nfs
-        opts: "noauto,x-systemd.automount,x-systemd.idle-timeout=600,x-systemd.device-timeout=5,timeo=14,_netdev"
+        path: "/home/boris/{{ item.path }}"
+        src: "{{ item.src }}"
+        fstype: "{{ item.fstype }}"
+        opts: "{{ item.opts }}"
         state: present
+      loop: "{{ nas_mounts }}"
 
-    - name: Create symlink from home directory to NAS SyncFolder
+    - name: Trigger systemd daemon-reload and ensure NAS automount units are started
+      ansible.builtin.systemd:
+        name: "home-boris-{{ item.path | replace('/', '-') }}.automount"
+        state: started
+        daemon_reload: yes
+      loop: "{{ nas_mounts }}"
+
+    - name: (RedHat) Create symlinks to NAS NFS mount directories
       ansible.builtin.file:
-        src: "/home/boris/{{ nas_symlink_src }}"
-        dest: "/home/boris/{{ nas_symlink_dest }}"
+        src: "/home/boris/mnt/SharedLand/{{ item.src }}"
+        dest: "/home/boris/{{ item.dest }}"
         state: link
         force: yes
         owner: boris
         group: boris
+      loop:
+        - { src: "SyncFolder", dest: "SyncFolder" }
+        - { src: "Backup", dest: "Backup" }
+      when: ansible_os_family == 'RedHat'
 
     # ── 12. SECONDARY HARD DRIVE MOUNT ───────────────────────────────────────
 
@@ -451,7 +474,7 @@
         state: directory
         owner: boris
         group: boris
-        mode: '0755'
+        mode: "0755"
 
     - name: Configure secondary HDD mount in /etc/fstab
       ansible.posix.mount:
@@ -460,3 +483,115 @@
         fstype: "{{ hdd_fstype }}"
         opts: "{{ hdd_mount_opts }}"
         state: present
+
+    # ── 13. BORG BACKUP CONFIGURATION ────────────────────────────────────────
+
+    - name: Ensure user local bin directory exists
+      ansible.builtin.file:
+        path: /home/boris/.local/bin
+        state: directory
+        owner: boris
+        group: boris
+        mode: "0755"
+
+    # - name: Ensure BorgBackup repository is initialized
+    #   ansible.builtin.command:
+    #     cmd: "borg init --encryption=none /home/boris/Backup/borg-repo"
+    #     creates: "/home/boris/Backup/borg-repo/config"
+    #   become: yes
+    #   become_user: boris
+    #   register: borg_init
+    #   failed_when: false
+
+    # - name: Create BorgBackup execution script
+    #   ansible.builtin.copy:
+    #     dest: /home/boris/.local/bin/borg-backup.sh
+    #     content: |
+    #       #!/usr/bin/env bash
+    #       set -euo pipefail
+
+    #       # Define Borg Repository
+    #       export BORG_REPO="/home/boris/Backup/borg-repo"
+
+    #       # Ensure the mount point is active (trigger automount by accessing it)
+    #       ls "${BORG_REPO}" >/dev/null 2>&1 || true
+
+    #       # Verify that the Borg config file exists (confirming mount is active)
+    #       if [[ ! -f "${BORG_REPO}/config" ]]; then
+    #           echo "⚠️ Error: Borg repository is not accessible. Is the NAS mounted?" >&2
+    #           exit 1
+    #       fi
+
+    #       echo "🚀 Starting BorgBackup process..."
+
+    #       # Run Borg create
+    #       borg create \
+    #           --stats \
+    #           --progress \
+    #           --compression lz4 \
+    #           ::"backup-$(date +%Y-%m-%d-%H%M%S)" \
+    #           {{ borg_backup_sources | join(' ') }}
+
+    #       echo "🧹 Pruning old archives..."
+    #       borg prune \
+    #           --list \
+    #           --keep-daily=7 \
+    #           --keep-weekly=4 \
+    #           --keep-monthly=12
+
+    #       echo "✅ Backup process complete!"
+    #     owner: boris
+    #     group: boris
+    #     mode: '0755'
+
+    # - name: Ensure user systemd config directory exists
+    #   ansible.builtin.file:
+    #     path: /home/boris/.config/systemd/user
+    #     state: directory
+    #     owner: boris
+    #     group: boris
+    #     mode: '0755'
+
+    # - name: Create BorgBackup systemd service unit
+    #   ansible.builtin.copy:
+    #     dest: /home/boris/.config/systemd/user/borg-backup.service
+    #     content: |
+    #       [Unit]
+    #       Description=Daily BorgBackup task to Synology NAS
+    #       After=network-online.target
+    #       Wants=network-online.target
+
+    #       [Service]
+    #       Type=oneshot
+    #       ExecStartPre=/bin/sh -c 'until ping -c1 -W1 homecloud.local >/dev/null 2>&1; do sleep 5; done'
+    #       ExecStart=/home/boris/.local/bin/borg-backup.sh
+    #     owner: boris
+    #     group: boris
+    #     mode: '0644'
+
+    # - name: Create BorgBackup systemd timer unit
+    #   ansible.builtin.copy:
+    #     dest: /home/boris/.config/systemd/user/borg-backup.timer
+    #     content: |
+    #       [Unit]
+    #       Description=Run BorgBackup daily and persist across shutdowns
+
+    #       [Timer]
+    #       OnCalendar=daily
+    #       Persistent=true
+
+    #       [Install]
+    #       WantedBy=timers.target
+    #     owner: boris
+    #     group: boris
+    #     mode: '0644'
+
+    # - name: Enable and start BorgBackup user timer
+    #   ansible.builtin.systemd:
+    #     name: borg-backup.timer
+    #     scope: user
+    #     enabled: yes
+    #     state: started
+    #     daemon_reload: yes
+    #   become: yes
+    #   become_user: boris

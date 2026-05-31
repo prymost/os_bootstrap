@@ -11,6 +11,12 @@ os_cli_dependencies:
   - lsb-release
   - wl-clipboard
   - nfs-common
+  - cifs-utils
+
+# OS-Specific NAS Mounts (SMB/CIFS for Pop!_OS)
+nas_mounts:
+  - { path: "SyncFolder", src: "//homecloud.local/SharedLand/SyncFolder", fstype: "cifs", opts: "credentials=/etc/samba/credentials-homecloud,noauto,x-systemd.automount,x-systemd.idle-timeout=600,x-systemd.device-timeout=5,uid=boris,gid=boris,iocharset=utf8,nobrl,mfsymlinks,noperm,_netdev,vers=3.0" }
+  - { path: "Backup", src: "//homecloud.local/SharedLand/Backup", fstype: "cifs", opts: "credentials=/etc/samba/credentials-homecloud,noauto,x-systemd.automount,x-systemd.idle-timeout=600,x-systemd.device-timeout=5,uid=boris,gid=boris,iocharset=utf8,nobrl,mfsymlinks,noperm,_netdev,vers=3.0" }
 
 os_dev_packages:
   - docker.io
