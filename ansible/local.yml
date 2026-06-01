@@ -117,6 +117,16 @@
       shell: wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sh /dev/stdin
       when: calibre_check.rc != 0
 
+    - name: Check if Antigravity CLI is installed
+      ansible.builtin.command: command -v agy
+      register: antigravity_check
+      failed_when: false
+      changed_when: false
+
+    - name: Install Antigravity CLI using the official installer script
+      ansible.builtin.shell: curl -fsSL https://antigravity.google/cli/install.sh | bash
+      when: antigravity_check.rc != 0
+
     # ── 3. FLATPAK PACKAGES ──────────────────────────────────────────────────
 
     - name: Add Flathub repository
@@ -554,7 +564,7 @@
           echo "✅ Backup process complete!"
         owner: boris
         group: boris
-        mode: '0755'
+        mode: "0755"
 
     - name: Ensure user systemd config directory exists
       ansible.builtin.file:
@@ -562,7 +572,7 @@
         state: directory
         owner: boris
         group: boris
-        mode: '0755'
+        mode: "0755"
 
     - name: Create BorgBackup systemd service unit
       ansible.builtin.copy:
@@ -579,7 +589,7 @@
           ExecStart=/home/boris/.local/bin/borg-backup.sh
         owner: boris
         group: boris
-        mode: '0644'
+        mode: "0644"
 
     - name: Create BorgBackup systemd timer unit
       ansible.builtin.copy:
@@ -596,7 +606,7 @@
           WantedBy=timers.target
         owner: boris
         group: boris
-        mode: '0644'
+        mode: "0644"
 
     - name: Enable and start BorgBackup user timer
       ansible.builtin.systemd:

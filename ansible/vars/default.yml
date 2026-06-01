@@ -19,6 +19,7 @@ common_dev_packages:
 common_other_packages:
   - vlc
   - discord
+  - gamescope
 
 flatpak_packages:
   - com.logseq.Logseq
