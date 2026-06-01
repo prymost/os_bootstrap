@@ -17,6 +17,7 @@ common_dev_packages:
   - zsh-autosuggestions
 
 common_other_packages:
+  - firefox
   - vlc
   - discord
   - gamescope
