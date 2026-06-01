@@ -10,7 +10,7 @@
   tasks:
     - name: Load OS-specific variables
       ansible.builtin.include_vars:
-        file: "vars/{{ ansible_os_family }}.yml"
+        file: "vars/{{ ansible_facts['os_family'] }}.yml"
 
     # ── 1. PRE-INSTALL & REPOSITORY CONFIGURATION ───────────────────────────
 
@@ -18,34 +18,34 @@
       apt_key:
         url: https://packages.microsoft.com/keys/microsoft.asc
         state: present
-      when: ansible_os_family == 'Debian'
+      when: ansible_facts['os_family'] == 'Debian'
 
     - name: (Debian) Add VS Code repository
       apt_repository:
         repo: "deb [arch=amd64,arm64,armhf] https://packages.microsoft.com/repos/code stable main"
         state: present
         filename: vscode
-      when: ansible_os_family == 'Debian'
+      when: ansible_facts['os_family'] == 'Debian'
 
     - name: (Debian) Remove conflicting legacy Brave Browser list file
       ansible.builtin.file:
         path: /etc/apt/sources.list.d/brave-browser.list
         state: absent
-      when: ansible_os_family == 'Debian'
+      when: ansible_facts['os_family'] == 'Debian'
 
     - name: (Debian) Download Brave Browser GPG keyring
       ansible.builtin.get_url:
         url: https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
         dest: /usr/share/keyrings/brave-browser-archive-keyring.gpg
         mode: "0644"
-      when: ansible_os_family == 'Debian'
+      when: ansible_facts['os_family'] == 'Debian'
 
     - name: (Debian) Add Brave Browser repository
       apt_repository:
         repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main"
         state: present
         filename: brave-browser-release
-      when: ansible_os_family == 'Debian'
+      when: ansible_facts['os_family'] == 'Debian'
 
     - name: (RedHat) Add VS Code repository
       yum_repository:
@@ -55,7 +55,7 @@
         enabled: yes
         gpgcheck: yes
         gpgkey: https://packages.microsoft.com/keys/microsoft.asc
-      when: ansible_os_family == 'RedHat'
+      when: ansible_facts['os_family'] == 'RedHat'
 
     - name: (RedHat) Add Brave Browser repository
       yum_repository:
@@ -65,16 +65,16 @@
         enabled: yes
         gpgcheck: yes
         gpgkey: https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
-      when: ansible_os_family == 'RedHat'
+      when: ansible_facts['os_family'] == 'RedHat'
 
     - name: (RedHat) Install RPM Fusion free & nonfree repository packages for Steam
       dnf:
         name:
-          - https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm
-          - https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm
+          - https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm
+          - https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm
         state: present
         disable_gpg_check: yes
-      when: ansible_os_family == 'RedHat'
+      when: ansible_facts['os_family'] == 'RedHat'
 
     # ── 2. SYSTEM PACKAGE MANAGEMENT (DECLARATIVE) ───────────────────────────
 
@@ -92,6 +92,7 @@
       package:
         name: "{{ target_packages }}"
         state: present
+        update_cache: yes
 
     - name: Install Brave Browser and VS Code
       package:
@@ -108,7 +109,7 @@
 
     - name: Ensure xcb-util-cursor/libxcb-cursor0 is installed (Calibre dependency)
       package:
-        name: "{{ 'xcb-util-cursor' if ansible_os_family == 'RedHat' else 'libxcb-cursor0' }}"
+        name: "{{ 'xcb-util-cursor' if ansible_facts['os_family'] == 'RedHat' else 'libxcb-cursor0' }}"
         state: present
       when: calibre_check.rc != 0
 
@@ -156,7 +157,7 @@
       become: yes
       become_user: boris
       environment:
-        PATH: "/home/linuxbrew/.linuxbrew/bin:{{ ansible_env.PATH }}"
+        PATH: "/home/linuxbrew/.linuxbrew/bin:{{ ansible_facts['env']['PATH'] }}"
 
     # ── 5. PERFORMANCE AND KERNEL TWEAKS ─────────────────────────────────────
 
@@ -321,7 +322,7 @@
         dbus-send --session --dest=org.kde.KWin --type=method_call /KWin org.kde.KWin.reconfigure || true
       become: yes
       become_user: boris
-      when: ansible_os_family == 'RedHat'
+      when: ansible_facts['os_family'] == 'RedHat'
 
     # ── 10. SYSTEM UPDATE AUTOMATION SERVICES ────────────────────────────────
 
@@ -334,7 +335,7 @@
 
           [Service]
           Type=oneshot
-          ExecStart=/home/boris/Workspace/os_bootstrap/linux/{{ 'fedora' if ansible_os_family == 'RedHat' else 'debian' }}/system-update.sh
+          ExecStart=/home/boris/Workspace/os_bootstrap/linux/{{ 'fedora' if ansible_facts['os_family'] == 'RedHat' else 'debian' }}/system-update.sh
         owner: root
         group: root
         mode: "0644"
@@ -377,7 +378,7 @@
           [Service]
           Type=oneshot
           ExecStartPre=/bin/sh -c 'until ping -c1 -W1 github.com >/dev/null 2>&1; do sleep 2; done'
-          ExecStart=%h/Workspace/os_bootstrap/linux/{{ 'fedora' if ansible_os_family == 'RedHat' else 'debian' }}/update.sh
+          ExecStart=%h/Workspace/os_bootstrap/linux/{{ 'fedora' if ansible_facts['os_family'] == 'RedHat' else 'debian' }}/update.sh
         owner: boris
         group: boris
         mode: "0644"
@@ -427,7 +428,7 @@
         state: absent
       loop: "{{ legacy_nas_stats.results }}"
       when:
-        - ansible_os_family == 'Debian'
+        - ansible_facts['os_family'] == 'Debian'
         - item.stat.exists
         - item.stat.islnk
 
@@ -467,7 +468,7 @@
       loop:
         - { src: "SyncFolder", dest: "SyncFolder" }
         - { src: "Backup", dest: "Backup" }
-      when: ansible_os_family == 'RedHat'
+      when: ansible_facts['os_family'] == 'RedHat'
 
     # ── 12. SECONDARY HARD DRIVE MOUNT ───────────────────────────────────────
 
