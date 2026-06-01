@@ -154,6 +154,15 @@
         path: /home/linuxbrew/.linuxbrew/bin/brew
       register: brew_stat
 
+    - name: Create Homebrew directory with correct ownership
+      ansible.builtin.file:
+        path: /home/linuxbrew
+        state: directory
+        owner: boris
+        group: boris
+        mode: "0755"
+      when: not brew_stat.stat.exists
+
     - name: Install Homebrew (Linuxbrew)
       shell: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
       become: yes
