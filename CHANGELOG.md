@@ -1,6 +1,10 @@
 I will record changes to this file just so i don't need to look at commit history every time
 
 # Changelog
+2026-05-31:
+- Removed custom ISO builder script (`build_iso.sh`) and related references.
+- Updated Ventoy preparation script (`prepare_ventoy.sh`) to automatically resolve and download the latest stable Fedora Everything Netinstall ISO if not found.
+
 2026-05-28:
 - Migrated Pop!_OS and Fedora KDE configurations to a unified declarative Ansible playbook (`ansible/local.yml`).
 - Added automated Fedora Kickstart config (`ks.cfg`) and custom ISO builder script (`build_iso.sh`).

@@ -7,7 +7,7 @@ This project contains a set of bootstrap scripts and playbooks for automating th
 *   **Windows:** PowerShell, Winget
 *   **macOS:** Bash, Homebrew
 *   **Linux (Fedora & Pop!_OS/Debian):** Ansible, DNF, APT, Flatpak, Linuxbrew, Systemd Timers
-*   **Fedora Automation:** Anaconda Kickstart (`ks.cfg`), custom ISO builder (`xorriso`)
+*   **Fedora Automation:** Anaconda Kickstart (`ks.cfg`), Ventoy automated installation
 
 ## Building and Running
 
@@ -17,9 +17,9 @@ Linux setup is declarative, using Ansible targetting `localhost`.
     ```bash
     ansible-playbook -K ansible/local.yml
     ```
-*   **Fedora Semi-Automated ISO Build**:
+*   **Fedora Ventoy Setup**:
     ```bash
-    ./linux/fedora/build_iso.sh
+    ./linux/fedora/prepare_ventoy.sh
     ```
 
 ### 2. Windows 11 (as Administrator)
