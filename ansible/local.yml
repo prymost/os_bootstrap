@@ -323,8 +323,8 @@
         lookandfeeltool -a org.fedoraproject.fedoradark.desktop || true
         gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' || true
 
-        # Set keyboard shortcut to open start menu to Ctrl+Space
-        kwriteconfig6 --file kglobalshortcutsrc --group "plasmashell" --key "activate application launcher" "$(printf 'Ctrl+Space\tnone\tActivate Application Launcher')"
+        # Set keyboard shortcut to launch krunner to Ctrl+Space
+        kwriteconfig6 --file kglobalshortcutsrc --group "org.kde.krunner.desktop" --key "_launch" "$(printf 'Ctrl+Space\tAlt+Space\tSearch')"
 
         # Map PrintScreen to Spectacle rectangular region capture
         kwriteconfig6 --file kglobalshortcutsrc --group "org.kde.spectacle.desktop" --key "RectangularRegion" "$(printf 'Print\tnone\tCapture Rectangular Region')"
