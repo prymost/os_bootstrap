@@ -385,6 +385,14 @@
         state: started
         daemon_reload: yes
 
+    - name: Ensure user systemd config directory exists
+      ansible.builtin.file:
+        path: /home/boris/.config/systemd/user
+        state: directory
+        owner: boris
+        group: boris
+        mode: '0755'
+
     - name: Create user-specific update systemd service unit
       copy:
         dest: /home/boris/.config/systemd/user/update.service
