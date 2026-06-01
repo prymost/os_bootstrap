@@ -10,6 +10,7 @@ common_cli_packages:
   - keychain
   - borgbackup
   - stow
+  - flatpak
 
 common_dev_packages:
   - zsh
