@@ -323,7 +323,11 @@
         lookandfeeltool -a org.fedoraproject.fedoradark.desktop || true
         gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' || true
 
+        # Remove the previous start menu shortcut customization to prevent conflicts
+        kwriteconfig6 --file kglobalshortcutsrc --group "plasmashell" --key "activate application launcher" --delete || true
+
         # Set keyboard shortcut to launch krunner to Ctrl+Space
+        kwriteconfig6 --file kglobalshortcutsrc --group "krunner" --key "_launch" "$(printf 'Ctrl+Space\tAlt+Space\tSearch')"
         kwriteconfig6 --file kglobalshortcutsrc --group "org.kde.krunner.desktop" --key "_launch" "$(printf 'Ctrl+Space\tAlt+Space\tSearch')"
 
         # Map PrintScreen to Spectacle rectangular region capture
@@ -344,6 +348,7 @@
         kwriteconfig6 --file kscreenlockerrc --group "Daemon" --key "Autolock" "true"
 
         # Reload configs dynamically
+        export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
         dbus-send --session --dest=org.kde.keyboard --type=method_call /Layouts org.kde.KeyboardLayouts.reloadConfig || true
         dbus-send --session --dest=org.kde.KWin --type=method_call /KWin org.kde.KWin.reconfigure || true
       become: yes
