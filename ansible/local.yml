@@ -118,14 +118,15 @@
       when: calibre_check.rc != 0
 
     - name: Check if Antigravity CLI is installed
-      ansible.builtin.command: command -v agy
+      ansible.builtin.stat:
+        path: /home/boris/.local/bin/agy
       register: antigravity_check
-      failed_when: false
-      changed_when: false
 
     - name: Install Antigravity CLI using the official installer script
       ansible.builtin.shell: curl -fsSL https://antigravity.google/cli/install.sh | bash
-      when: antigravity_check.rc != 0
+      become: yes
+      become_user: boris
+      when: not antigravity_check.stat.exists
 
     # ── 3. FLATPAK PACKAGES ──────────────────────────────────────────────────
 
