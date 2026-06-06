@@ -28,6 +28,13 @@ kwriteconfig6 --file kcminputrc --group "Keyboard" --key "RepeatRate" "30"
 kwriteconfig6 --file kscreenlockerrc --group "Daemon" --key "Timeout" "20"
 kwriteconfig6 --file kscreenlockerrc --group "Daemon" --key "Autolock" "true"
 
+# Configure monitor layout and priority if DP-1 and DP-2 are connected
+if command -v kscreen-doctor >/dev/null 2>&1; then
+    if kscreen-doctor -o | grep -q "DP-1" && kscreen-doctor -o | grep -q "DP-2"; then
+        kscreen-doctor output.DP-2.position.0,0 output.DP-1.position.2259,0 output.DP-2.priority.1 output.DP-1.priority.2 || true
+    fi
+fi
+
 # Reload configs dynamically
 export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
 dbus-send --session --dest=org.kde.keyboard --type=method_call /Layouts org.kde.KeyboardLayouts.reloadConfig || true
