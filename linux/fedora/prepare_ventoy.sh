@@ -74,7 +74,7 @@ except Exception:
         echo "   ✅ Found Ventoy release: $(basename "$VENTOY_URL")"
     fi
 
-    TEMP_DIR=$(mktemp -d -t ventoy-prep-XXXXXX)
+    TEMP_DIR=$(mktemp -d -t vnt-prep-XXXXXX)
     echo "🌐 Downloading Ventoy package..."
     if command -v wget &> /dev/null; then
         wget -q --show-progress -O "${TEMP_DIR}/ventoy.tar.gz" "$VENTOY_URL"
@@ -88,7 +88,7 @@ except Exception:
 
     echo "📦 Extracting Ventoy..."
     tar -xzf "${TEMP_DIR}/ventoy.tar.gz" -C "$TEMP_DIR"
-    VENTOY_EXTRACTED_DIR=$(find "$TEMP_DIR" -maxdepth 1 -type d -name "ventoy-*" | head -n 1)
+    VENTOY_EXTRACTED_DIR=$(find "$TEMP_DIR" -mindepth 1 -maxdepth 1 -type d -name "ventoy-*" | head -n 1)
 
     if [[ -z "$VENTOY_EXTRACTED_DIR" ]]; then
         echo "❌ Failed to locate extracted Ventoy directory."
@@ -96,21 +96,54 @@ except Exception:
         exit 1
     fi
 
+    # Unmount any mounted partitions on the selected device first, as Ventoy2Disk
+    # will fail if the device is in use (such as mounts with spaces in paths).
+    echo "🔍 Checking for mounted partitions on $DEV_PATH..."
+    mapfile -t MOUNTED_PARTS < <(lsblk -pln -o NAME,MOUNTPOINT "$DEV_PATH" | awk '$2 != "" {print $1}')
+    for part in "${MOUNTED_PARTS[@]}"; do
+        echo "   🚚 Unmounting partition $part..."
+        if ! udisksctl unmount -b "$part" 2>/dev/null; then
+            sudo umount "$part" || sudo umount -l "$part" || true
+        fi
+    done
+
     echo "🔧 Running Ventoy2Disk to format $DEV_PATH..."
     echo "🔒 Root privileges (sudo) are required to format the drive."
-    sudo "${VENTOY_EXTRACTED_DIR}/Ventoy2Disk.sh" -i "$DEV_PATH"
+    pushd "${VENTOY_EXTRACTED_DIR}" >/dev/null
+    # Run Ventoy2Disk from its own directory so its internal paths resolve correctly.
+    # We run it interactively (-i) so the user can review Ventoy's own confirmation prompts.
+    if ! sudo ./Ventoy2Disk.sh -i "$DEV_PATH"; then
+        echo "❌ Ventoy installation script failed."
+        popd >/dev/null
+        rm -rf "$TEMP_DIR"
+        exit 1
+    fi
+    popd >/dev/null
     rm -rf "$TEMP_DIR"
+
+    # Force a partition table reload and wait for udev to settle
+    sudo partprobe "$DEV_PATH" || true
+    sudo udevadm settle || true
+
+    PARTITION=""
+    PART2=""
+    if [[ "$SELECTED_DEV" =~ ^(nvme|mmcblk|loop) ]]; then
+        PARTITION="${DEV_PATH}p1"
+        PART2="${DEV_PATH}p2"
+    else
+        PARTITION="${DEV_PATH}1"
+        PART2="${DEV_PATH}2"
+    fi
+
+    # Verify that the Ventoy EFI partition actually exists to confirm successful formatting
+    if [[ ! -b "$PART2" ]]; then
+        echo "❌ Ventoy installation failed (EFI partition $PART2 not found)."
+        exit 1
+    fi
 
     echo "📂 Ventoy installation complete."
     echo "🚚 Mounting the new Ventoy partition..."
     sleep 3
-
-    PARTITION=""
-    if [[ "$SELECTED_DEV" =~ ^(nvme|mmcblk|loop) ]]; then
-        PARTITION="${DEV_PATH}p1"
-    else
-        PARTITION="${DEV_PATH}1"
-    fi
 
     echo "🔗 Mounting $PARTITION..."
     MOUNT_OUT=$(udisksctl mount -b "$PARTITION" 2>/dev/null || true)
