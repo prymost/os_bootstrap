@@ -1,0 +1,70 @@
+---
+# ── 1. DOTFILES RESTORATION (GNU STOW) ───────────────────────────────────
+
+- name: Check status of dotfiles to prevent overwriting symlinks
+  ansible.builtin.stat:
+    path: "/home/boris/{{ item }}"
+  loop:
+    - .zshrc
+    - .vimrc
+    - .config/kitty/kitty.conf
+  register: dotfile_stats
+
+- name: Remove existing physical dotfiles to prevent Stow conflicts
+  ansible.builtin.file:
+    path: "{{ item.stat.path }}"
+    state: absent
+  loop: "{{ dotfile_stats.results }}"
+  when: item.stat.exists and not item.stat.islnk
+
+- name: Link dotfiles using GNU Stow
+  ansible.builtin.command:
+    cmd: "stow -d /home/boris/Workspace/os_bootstrap/shared -t /home/boris zsh vim kitty"
+  become: yes
+  become_user: boris
+
+# ── 2. USER ENVIRONMENT (ZSH, OMZ, KITTY) ────────────────────────────────
+
+- name: Ensure user shell is Zsh
+  ansible.builtin.user:
+    name: boris
+    shell: /bin/zsh
+
+- name: Check if Oh My Zsh is installed
+  ansible.builtin.stat:
+    path: /home/boris/.oh-my-zsh
+  register: omz_stat
+
+- name: Install Oh My Zsh
+  ansible.builtin.shell: sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+  become: yes
+  become_user: boris
+  when: not omz_stat.stat.exists
+
+- name: Clone Oh My Zsh custom plugins
+  ansible.builtin.git:
+    repo: "{{ item.repo }}"
+    dest: "/home/boris/.oh-my-zsh/custom/plugins/{{ item.name }}"
+    depth: 1
+  loop:
+    - {
+        name: "zsh-autosuggestions",
+        repo: "https://github.com/zsh-users/zsh-autosuggestions",
+      }
+    - {
+        name: "zsh-syntax-highlighting",
+        repo: "https://github.com/zsh-users/zsh-syntax-highlighting.git",
+      }
+  become: yes
+  become_user: boris
+
+- name: Check if Kitty Terminal is installed
+  ansible.builtin.stat:
+    path: /home/boris/.local/bin/kitty
+  register: kitty_stat
+
+- name: Install and configure Kitty Terminal
+  ansible.builtin.script: files/install-kitty.sh
+  become: yes
+  become_user: boris
+  when: not kitty_stat.stat.exists

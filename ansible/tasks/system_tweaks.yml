@@ -1,0 +1,50 @@
+---
+# ── 1. PERFORMANCE AND KERNEL TWEAKS ─────────────────────────────────────
+
+- name: Apply sysctl swappiness value
+  ansible.posix.sysctl:
+    name: vm.swappiness
+    value: "10"
+    state: present
+    sysctl_set: yes
+    reload: yes
+
+- name: Apply sysctl max_user_watches limits
+  ansible.posix.sysctl:
+    name: fs.inotify.max_user_watches
+    value: "524288"
+    state: present
+    sysctl_set: yes
+    reload: yes
+
+- name: Enable periodic SSD TRIM service
+  ansible.builtin.systemd:
+    name: fstrim.timer
+    enabled: yes
+    state: started
+
+# ── 2. ZSA VOYAGER KEYBOARD CONFIGURATION ────────────────────────────────
+
+- name: Ensure plugdev group exists
+  ansible.builtin.group:
+    name: plugdev
+    state: present
+
+- name: Add user boris to plugdev group
+  ansible.builtin.user:
+    name: boris
+    groups: plugdev
+    append: yes
+
+- name: Write udev rules for ZSA Voyager
+  ansible.builtin.copy:
+    src: files/50-zsa.rules
+    dest: /etc/udev/rules.d/50-zsa.rules
+    owner: root
+    group: root
+    mode: "0644"
+  register: udev_rules
+
+- name: Reload udev rules
+  ansible.builtin.shell: udevadm control --reload-rules && udevadm trigger
+  when: udev_rules.changed

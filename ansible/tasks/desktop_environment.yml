@@ -1,0 +1,6 @@
+---
+- name: Configure KDE UI shortcuts and behaviors
+  ansible.builtin.script: files/configure-kde.sh
+  become: yes
+  become_user: boris
+  when: ansible_facts['os_family'] == 'RedHat'

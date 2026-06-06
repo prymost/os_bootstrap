@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Define Borg Repository
+export BORG_REPO="{{ borg_repository }}"
+
+# Ensure the mount point is active (trigger automount by accessing it)
+ls "${BORG_REPO}" >/dev/null 2>&1 || true
+
+# Verify that the Borg config file exists (confirming mount is active)
+if [[ ! -f "${BORG_REPO}/config" ]]; then
+    echo "⚠️ Error: Borg repository is not accessible. Is the NAS mounted?" >&2
+    exit 1
+fi
+
+echo "🚀 Starting BorgBackup process..."
+
+# Run Borg create
+borg create \
+    --stats \
+    --progress \
+    --compression lz4 \
+    ::"backup-$(date +%Y-%m-%d-%H%M%S)" \
+    {{ borg_backup_sources | join(' ') }}
+
+echo "🧹 Pruning old archives..."
+borg prune \
+    --list \
+    --keep-daily=7 \
+    --keep-weekly=4 \
+    --keep-monthly=12
+
+echo "✅ Backup process complete!"

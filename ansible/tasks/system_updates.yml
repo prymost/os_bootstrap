@@ -1,0 +1,98 @@
+---
+# ── 1. SYSTEM UPDATE AUTOMATION SERVICES ────────────────────────────────
+
+- name: Create system-update systemd service unit
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/system-update.service
+    content: |
+      [Unit]
+      Description=Update system packages (dnf/apt, calibre)
+
+      [Service]
+      Type=oneshot
+      ExecStart=/home/boris/Workspace/os_bootstrap/linux/{{ 'fedora' if ansible_facts['os_family'] == 'RedHat' else 'debian' }}/system-update.sh
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Create system-update systemd timer unit
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/system-update.timer
+    content: |
+      [Unit]
+      Description=Run daily system updates
+
+      [Timer]
+      OnCalendar=daily
+      Persistent=true
+      OnBootSec=15min
+      OnUnitActiveSec=1d
+
+      [Install]
+      WantedBy=timers.target
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Enable and start system update timer
+  ansible.builtin.systemd:
+    name: system-update.timer
+    enabled: yes
+    state: started
+    daemon_reload: yes
+
+# ── 2. USER-SPECIFIC UPDATE SERVICES ──────────────────────────────────────
+
+- name: Ensure user systemd config directory exists
+  ansible.builtin.file:
+    path: /home/boris/.config/systemd/user
+    state: directory
+    owner: boris
+    group: boris
+    mode: '0755'
+
+- name: Create user-specific update systemd service unit
+  ansible.builtin.copy:
+    dest: /home/boris/.config/systemd/user/update.service
+    content: |
+      [Unit]
+      Description=Update user packages (flatpak, brew, kitty, omz)
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      Type=oneshot
+      ExecStartPre=/bin/sh -c 'until ping -c1 -W1 github.com >/dev/null 2>&1; do sleep 2; done'
+      ExecStart=%h/Workspace/os_bootstrap/linux/{{ 'fedora' if ansible_facts['os_family'] == 'RedHat' else 'debian' }}/update.sh
+    owner: boris
+    group: boris
+    mode: "0644"
+
+- name: Create user-specific update systemd timer unit
+  ansible.builtin.copy:
+    dest: /home/boris/.config/systemd/user/update.timer
+    content: |
+      [Unit]
+      Description=Run daily system updates and on wakeup
+
+      [Timer]
+      OnCalendar=daily
+      Persistent=true
+      OnBootSec=15min
+      OnUnitActiveSec=1d
+
+      [Install]
+      WantedBy=timers.target
+    owner: boris
+    group: boris
+    mode: "0644"
+
+- name: Enable user-specific update timer
+  ansible.builtin.systemd:
+    name: update.timer
+    scope: user
+    enabled: yes
+    state: started
+    daemon_reload: yes
+  become: yes
+  become_user: boris

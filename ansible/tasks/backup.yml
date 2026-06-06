@@ -1,0 +1,89 @@
+---
+# ── 1. TOOLS & REPOSITORY INITIALIZATION ─────────────────────────────────
+
+- name: Ensure user local bin directory exists
+  ansible.builtin.file:
+    path: /home/boris/.local/bin
+    state: directory
+    owner: boris
+    group: boris
+    mode: "0755"
+
+- name: Download and install custom psort tool
+  ansible.builtin.get_url:
+    url: https://github.com/prymost/psort/releases/latest/download/psort-linux
+    dest: /home/boris/.local/bin/psort
+    mode: "0755"
+    owner: boris
+    group: boris
+
+- name: Ensure BorgBackup repository is initialized
+  ansible.builtin.command:
+    cmd: "borg init --encryption=none {{ borg_repository }}"
+    creates: "{{ borg_repository }}/config"
+  become: yes
+  become_user: boris
+  register: borg_init
+  failed_when: false
+
+# ── 2. BACKUP SCRIPT AND SYSTEMD CONFIGURATION ───────────────────────────
+
+- name: Create BorgBackup execution script
+  ansible.builtin.template:
+    src: templates/borg-backup.sh.j2
+    dest: /home/boris/.local/bin/borg-backup.sh
+    owner: boris
+    group: boris
+    mode: "0755"
+
+- name: Ensure user systemd config directory exists
+  ansible.builtin.file:
+    path: /home/boris/.config/systemd/user
+    state: directory
+    owner: boris
+    group: boris
+    mode: "0755"
+
+- name: Create BorgBackup systemd service unit
+  ansible.builtin.copy:
+    dest: /home/boris/.config/systemd/user/borg-backup.service
+    content: |
+      [Unit]
+      Description=Daily BorgBackup task to Synology NAS
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      Type=oneshot
+      ExecStartPre=/bin/sh -c 'until ping -c1 -W1 homecloud.local >/dev/null 2>&1; do sleep 5; done'
+      ExecStart=/home/boris/.local/bin/borg-backup.sh
+    owner: boris
+    group: boris
+    mode: "0644"
+
+- name: Create BorgBackup systemd timer unit
+  ansible.builtin.copy:
+    dest: /home/boris/.config/systemd/user/borg-backup.timer
+    content: |
+      [Unit]
+      Description=Run BorgBackup daily and persist across shutdowns
+
+      [Timer]
+      OnCalendar=daily
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+    owner: boris
+    group: boris
+    mode: "0644"
+
+- name: Enable and start BorgBackup user timer
+  ansible.builtin.systemd:
+    name: borg-backup.timer
+    scope: user
+    enabled: yes
+    state: started
+    daemon_reload: yes
+  become: yes
+  become_user: boris

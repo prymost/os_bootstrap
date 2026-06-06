@@ -39,7 +39,7 @@ PowerShell -ExecutionPolicy Bypass -File windows/bootstrap-windows11.ps1
 
 ## 📁 Repository Overview
 
-*   **[`ansible/`](file:///home/boris/Workspace/os_bootstrap/ansible/)** — Unified declarative configuration playbook (`local.yml`) and OS-specific variables (`vars/`).
+*   **[`ansible/`](file:///home/boris/Workspace/os_bootstrap/ansible/)** — Declarative configuration playbook (`local.yml`), modular tasks (`tasks/`), templates (`templates/`), scripts (`files/`), and OS variables (`vars/`).
 *   **[`linux/fedora/`](file:///home/boris/Workspace/os_bootstrap/linux/fedora/)** — Kickstart installer automation configuration and custom ISO builder.
 *   **[`linux/debian/`](file:///home/boris/Workspace/os_bootstrap/linux/debian/)** — Update timers and scripts for Debian/Pop!_OS environments.
 *   **[`mac/`](file:///home/boris/Workspace/os_bootstrap/mac/)** — macOS configuration using Homebrew (Brewfile).

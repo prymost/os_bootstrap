@@ -1,0 +1,105 @@
+---
+# ── 1. SYSTEM PACKAGE MANAGEMENT ──────────────────────────────────────────
+
+- name: Purge unwanted bloatware packages from system
+  ansible.builtin.package:
+    name: "{{ item }}"
+    state: absent
+  loop: "{{ purged_os_packages }}"
+
+- name: Build target list of packages to install
+  ansible.builtin.set_fact:
+    target_packages: "{{ common_cli_packages + common_dev_packages + common_other_packages + os_cli_dependencies + os_dev_packages + os_other_packages }}"
+
+- name: Install required CLI, dev, and GUI packages
+  ansible.builtin.package:
+    name: "{{ target_packages }}"
+    state: present
+    update_cache: yes
+
+- name: Install Brave Browser and VS Code
+  ansible.builtin.package:
+    name:
+      - brave-browser
+      - code
+    state: present
+
+# ── 2. THIRD-PARTY APP SCRIPT INSTALLS ────────────────────────────────────
+
+- name: Check if Calibre is installed
+  ansible.builtin.command: command -v calibre
+  register: calibre_check
+  failed_when: false
+  changed_when: false
+
+- name: Ensure xcb-util-cursor/libxcb-cursor0 is installed (Calibre dependency)
+  ansible.builtin.package:
+    name: "{{ 'xcb-util-cursor' if ansible_facts['os_family'] == 'RedHat' else 'libxcb-cursor0' }}"
+    state: present
+  when: calibre_check.rc != 0
+
+- name: Install Calibre using the official website installer script
+  ansible.builtin.shell: wget -nv -O- https://download.calibre-ebook.com/linux-installer.sh | sh /dev/stdin
+  when: calibre_check.rc != 0
+
+- name: Check if Antigravity CLI is installed
+  ansible.builtin.stat:
+    path: /home/boris/.local/bin/agy
+  register: antigravity_check
+
+- name: Install Antigravity CLI using the official installer script
+  ansible.builtin.shell: curl -fsSL https://antigravity.google/cli/install.sh | bash
+  become: yes
+  become_user: boris
+  when: not antigravity_check.stat.exists
+
+# ── 3. FLATPAK PACKAGES ──────────────────────────────────────────────────
+
+- name: Add Flathub repository
+  community.general.flatpak_remote:
+    name: flathub
+    state: present
+    method: user
+    flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
+  become: yes
+  become_user: boris
+
+- name: Install Flatpak applications declaratively
+  community.general.flatpak:
+    name: "{{ item }}"
+    state: present
+    method: user
+  loop: "{{ flatpak_packages }}"
+  become: yes
+  become_user: boris
+
+# ── 4. HOMEBREW (LINUXBREW) ──────────────────────────────────────────────
+
+- name: Check if Homebrew is installed
+  ansible.builtin.stat:
+    path: /home/linuxbrew/.linuxbrew/bin/brew
+  register: brew_stat
+
+- name: Create Homebrew directory with correct ownership
+  ansible.builtin.file:
+    path: /home/linuxbrew
+    state: directory
+    owner: boris
+    group: boris
+    mode: "0755"
+  when: not brew_stat.stat.exists
+
+- name: Install Homebrew (Linuxbrew)
+  ansible.builtin.shell: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  become: yes
+  become_user: boris
+  when: not brew_stat.stat.exists
+
+- name: Install requested Homebrew packages
+  community.general.homebrew:
+    name: "{{ homebrew_packages }}"
+    state: present
+  become: yes
+  become_user: boris
+  environment:
+    PATH: "/home/linuxbrew/.linuxbrew/bin:{{ ansible_facts['env']['PATH'] }}"

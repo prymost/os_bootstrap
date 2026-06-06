@@ -1,6 +1,10 @@
 I will record changes to this file just so i don't need to look at commit history every time
 
 # Changelog
+
+2026-06-05:
+- Refactored monolithic Ansible playbook into modular task files (`tasks/`), templates (`templates/`), and scripts/rules (`files/`) to improve readability and adherence to SRP, DRY, and KISS principles.
+
 2026-05-31:
 - Removed custom ISO builder script (`build_iso.sh`) and related references.
 - Updated Ventoy preparation script (`prepare_ventoy.sh`) to automatically resolve and download the latest stable Fedora Everything Netinstall ISO if not found.

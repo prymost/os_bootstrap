@@ -1,0 +1,76 @@
+---
+# ── 1. NAS AUTOMOUNT CONFIGURATION ──────────────────────────────────────
+
+- name: Check status of legacy NFS paths
+  ansible.builtin.stat:
+    path: "/home/boris/{{ item }}"
+  loop:
+    - SyncFolder
+    - Backup
+  register: legacy_nas_stats
+
+- name: (Debian) Remove legacy NFS symlinks to prevent directory conflicts
+  ansible.builtin.file:
+    path: "{{ item.stat.path }}"
+    state: absent
+  loop: "{{ legacy_nas_stats.results }}"
+  when:
+    - ansible_facts['os_family'] == 'Debian'
+    - item.stat.exists
+    - item.stat.islnk
+
+- name: Ensure NAS mount directories exist
+  ansible.builtin.file:
+    path: "/home/boris/{{ item.path }}"
+    state: directory
+    owner: boris
+    group: boris
+    mode: "0755"
+  loop: "{{ nas_mounts }}"
+
+- name: Configure NAS mounts in /etc/fstab with systemd automount
+  ansible.posix.mount:
+    path: "/home/boris/{{ item.path }}"
+    src: "{{ item.src }}"
+    fstype: "{{ item.fstype }}"
+    opts: "{{ item.opts }}"
+    state: present
+  loop: "{{ nas_mounts }}"
+
+- name: Trigger systemd daemon-reload and ensure NAS automount units are started
+  ansible.builtin.systemd:
+    name: "home-boris-{{ item.path | replace('/', '-') }}.automount"
+    state: started
+    daemon_reload: yes
+  loop: "{{ nas_mounts }}"
+
+- name: (RedHat) Create symlinks to NAS NFS mount directories
+  ansible.builtin.file:
+    src: "/home/boris/mnt/SharedLand/{{ item.src }}"
+    dest: "/home/boris/{{ item.dest }}"
+    state: link
+    force: yes
+    owner: boris
+    group: boris
+  loop:
+    - { src: "SyncFolder", dest: "SyncFolder" }
+    - { src: "Backup", dest: "Backup" }
+  when: ansible_facts['os_family'] == 'RedHat'
+
+# ── 2. SECONDARY HARD DRIVE MOUNT ───────────────────────────────────────
+
+- name: Ensure secondary HDD mount directory exists
+  ansible.builtin.file:
+    path: "{{ hdd_mount_point }}"
+    state: directory
+    owner: boris
+    group: boris
+    mode: "0755"
+
+- name: Configure secondary HDD mount in /etc/fstab
+  ansible.posix.mount:
+    path: "{{ hdd_mount_point }}"
+    src: "UUID={{ hdd_uuid }}"
+    fstype: "{{ hdd_fstype }}"
+    opts: "{{ hdd_mount_opts }}"
+    state: present

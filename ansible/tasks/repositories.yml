@@ -1,0 +1,60 @@
+---
+- name: Setup Debian repositories
+  block:
+    - name: Add Microsoft GPG key for VS Code
+      ansible.builtin.apt_key:
+        url: https://packages.microsoft.com/keys/microsoft.asc
+        state: present
+
+    - name: Add VS Code repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64,arm64,armhf] https://packages.microsoft.com/repos/code stable main"
+        state: present
+        filename: vscode
+
+    - name: Remove conflicting legacy Brave Browser list file
+      ansible.builtin.file:
+        path: /etc/apt/sources.list.d/brave-browser.list
+        state: absent
+
+    - name: Download Brave Browser GPG keyring
+      ansible.builtin.get_url:
+        url: https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
+        dest: /usr/share/keyrings/brave-browser-archive-keyring.gpg
+        mode: "0644"
+
+    - name: Add Brave Browser repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main"
+        state: present
+        filename: brave-browser-release
+  when: ansible_facts['os_family'] == 'Debian'
+
+- name: Setup RedHat repositories
+  block:
+    - name: Add VS Code repository
+      ansible.builtin.yum_repository:
+        name: code
+        description: Visual Studio Code
+        baseurl: https://packages.microsoft.com/yumrepos/vscode
+        enabled: yes
+        gpgcheck: yes
+        gpgkey: https://packages.microsoft.com/keys/microsoft.asc
+
+    - name: Add Brave Browser repository
+      ansible.builtin.yum_repository:
+        name: brave-browser
+        description: Brave Browser
+        baseurl: https://brave-browser-rpm-release.s3.brave.com/x86_64/
+        enabled: yes
+        gpgcheck: yes
+        gpgkey: https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
+
+    - name: Install RPM Fusion free & nonfree repository packages for Steam
+      ansible.builtin.dnf:
+        name:
+          - "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm"
+          - "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_facts['distribution_major_version'] }}.noarch.rpm"
+        state: present
+        disable_gpg_check: yes
+  when: ansible_facts['os_family'] == 'RedHat'
