@@ -3,6 +3,8 @@ set -euo pipefail
 
 # Define Borg Repository
 export BORG_REPO="{{ borg_repository }}"
+export BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK=yes
+
 
 # Ensure the mount point is active (trigger automount by accessing it)
 ls "${BORG_REPO}" >/dev/null 2>&1 || true
@@ -21,7 +23,10 @@ borg create \
     --progress \
     --compression lz4 \
     ::"backup-$(date +%Y-%m-%d-%H%M%S)" \
-    {{ borg_backup_sources | join(' ') }}
+    {% for source in borg_backup_sources %}
+    "{{ source }}"{% if not loop.last %} \{% endif %}
+    {% endfor %}
+
 
 echo "🧹 Pruning old archives..."
 borg prune \

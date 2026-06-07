@@ -1,6 +1,15 @@
 ---
 # ── 1. SYSTEM UPDATE AUTOMATION SERVICES ────────────────────────────────
 
+- name: Copy system-update script to /usr/local/bin
+  ansible.builtin.copy:
+    src: "/home/boris/Workspace/os_bootstrap/linux/{{ 'fedora' if ansible_facts['os_family'] == 'RedHat' else 'debian' }}/system-update.sh"
+    dest: /usr/local/bin/system-update.sh
+    owner: root
+    group: root
+    mode: "0755"
+    remote_src: yes
+
 - name: Create system-update systemd service unit
   ansible.builtin.copy:
     dest: /etc/systemd/system/system-update.service
@@ -10,7 +19,7 @@
 
       [Service]
       Type=oneshot
-      ExecStart=/home/boris/Workspace/os_bootstrap/linux/{{ 'fedora' if ansible_facts['os_family'] == 'RedHat' else 'debian' }}/system-update.sh
+      ExecStart=/usr/local/bin/system-update.sh
     owner: root
     group: root
     mode: "0644"
