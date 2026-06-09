@@ -2,6 +2,9 @@ I will record changes to this file just so i don't need to look at commit histor
 
 # Changelog
 
+2026-06-07:
+- Fixed an issue where running the Ansible playbook deleted the Kitty configuration file from the repository due to the parent directory symlink.
+
 2026-06-05:
 - Refactored monolithic Ansible playbook into modular task files (`tasks/`), templates (`templates/`), and scripts/rules (`files/`) to improve readability and adherence to SRP, DRY, and KISS principles.
 

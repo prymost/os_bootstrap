@@ -10,12 +10,13 @@
     - .config/kitty/kitty.conf
   register: dotfile_stats
 
+# Prevent deleting repo files when their parent directories are symlinked
 - name: Remove existing physical dotfiles to prevent Stow conflicts
   ansible.builtin.file:
     path: "{{ item.stat.path }}"
     state: absent
   loop: "{{ dotfile_stats.results }}"
-  when: item.stat.exists and not item.stat.islnk
+  when: item.stat.exists and not (item.stat.path | realpath).startswith('/home/boris/Workspace/os_bootstrap/shared/')
 
 - name: Link dotfiles using GNU Stow
   ansible.builtin.command:
