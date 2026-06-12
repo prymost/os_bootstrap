@@ -21,11 +21,12 @@ common_other_packages:
   - vlc
   - discord
   - gamescope
+  - plasma-systemmonitor
+  - gwenview
 
 flatpak_packages:
   - com.logseq.Logseq
   - org.prismlauncher.PrismLauncher
-  - com.github.PintaProject.Pinta
   - io.kinvolk.Headlamp
 
 homebrew_packages:

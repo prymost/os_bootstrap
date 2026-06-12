@@ -56,7 +56,7 @@
       [Service]
       Type=oneshot
       ExecStartPre=/bin/sh -c 'until ping -c1 -W1 homecloud.local >/dev/null 2>&1; do sleep 5; done'
-      ExecStart=/home/boris/.local/bin/borg-backup.sh
+      ExecStart=/usr/bin/systemd-inhibit --who="borg-backup" --why="Prevent interrupting daily backup to Synology NAS" --mode=block /home/boris/.local/bin/borg-backup.sh
     owner: boris
     group: boris
     mode: "0644"
@@ -87,3 +87,17 @@
     daemon_reload: yes
   become: yes
   become_user: boris
+
+- name: Create systemd sleep hook to stop BorgBackup before suspend
+  ansible.builtin.copy:
+    dest: /usr/lib/systemd/system-sleep/borg-backup-suspend
+    content: |
+      #!/bin/sh
+      # Prevent interrupting running backup when the PC goes to sleep
+      if [ "$1" = "pre" ]; then
+          runuser -l boris -c "systemctl --user stop borg-backup.service" || true
+      fi
+    owner: root
+    group: root
+    mode: "0755"
+

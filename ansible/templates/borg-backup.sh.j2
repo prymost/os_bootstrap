@@ -15,6 +15,21 @@ if [[ ! -f "${BORG_REPO}/config" ]]; then
     exit 1
 fi
 
+# Avoid failing due to locks left by previous suspended/interrupted sleep states of the same host
+lock_dir="${BORG_REPO}/lock.exclusive"
+if [[ -d "${lock_dir}" ]]; then
+    lock_file=$(find "${lock_dir}" -maxdepth 1 -type f -print -quit)
+    if [[ -n "${lock_file}" ]]; then
+        lock_filename=$(basename "${lock_file}")
+        lock_host="${lock_filename%%@*}"
+        current_host=$(hostname)
+        if { [[ "${lock_host}" == "${current_host}" ]] || [[ "${lock_host}" == "pop-os" ]]; } && ! pgrep -x borg >/dev/null; then
+            echo "⚠️ Found stale lock from host '${lock_host}' (PID not running). Breaking lock..."
+            borg break-lock "${BORG_REPO}"
+        fi
+    fi
+fi
+
 echo "🚀 Starting BorgBackup process..."
 
 # Run Borg create
@@ -24,8 +39,9 @@ borg create \
     --compression lz4 \
     ::"backup-$(date +%Y-%m-%d-%H%M%S)" \
     {% for source in borg_backup_sources %}
-    "{{ source }}"{% if not loop.last %} \{% endif %}
-    {% endfor %}
+    "{{ source }}"{% if not loop.last %} \
+{% endif %}{% endfor %}
+
 
 
 echo "🧹 Pruning old archives..."

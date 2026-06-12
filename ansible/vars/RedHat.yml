@@ -23,3 +23,4 @@ os_other_packages:
   - steam
   - powerline-fonts
   - mesa-va-drivers-freeworld
+  - kde-partitionmanager

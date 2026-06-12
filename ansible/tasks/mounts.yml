@@ -50,8 +50,6 @@
     dest: "/home/boris/{{ item.dest }}"
     state: link
     force: yes
-    owner: boris
-    group: boris
   loop:
     - { src: "SyncFolder", dest: "SyncFolder" }
     - { src: "Backup", dest: "Backup" }
