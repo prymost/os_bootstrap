@@ -17,6 +17,7 @@
 
     - name: Provision system packages and package managers
       ansible.builtin.include_tasks: tasks/packages.yml
+      tags: packages
 
     - name: Apply performance and kernel tweaks
       ansible.builtin.include_tasks: tasks/system_tweaks.yml

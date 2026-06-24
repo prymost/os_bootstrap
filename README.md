@@ -16,6 +16,9 @@ sudo apt-get update && sudo apt-get install -y ansible git
 
 # 2. Run the playbook
 ansible-playbook -K ansible/local.yml
+
+# Or run only package-related tasks (e.g., to install Brave, VS Code, Flatpaks, Homebrew):
+ansible-playbook -K ansible/local.yml --tags packages
 ```
 
 *Note: For a fully automated Fedora KDE installation, see the [Kickstart instructions](linux/fedora/README.md).*

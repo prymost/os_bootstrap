@@ -2,6 +2,10 @@ I will record changes to this file just so i don't need to look at commit histor
 
 # Changelog
 
+2026-06-23:
+- Added `io.speedofsound.SpeedOfSound` Flatpak to default packages list for declarative offline voice dictation.
+- Restructured Ansible package tasks and playbook tags to allow running only package-related steps via `--tags packages`.
+
 2026-06-07:
 - Fixed an issue where running the Ansible playbook deleted the Kitty configuration file from the repository due to the parent directory symlink.
 
