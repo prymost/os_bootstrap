@@ -28,7 +28,6 @@ flatpak_packages:
   - com.logseq.Logseq
   - org.prismlauncher.PrismLauncher
   - io.kinvolk.Headlamp
-  - io.speedofsound.SpeedOfSound
 
 homebrew_packages:
   - kubectl
