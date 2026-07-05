@@ -28,6 +28,7 @@ flatpak_packages:
   - com.logseq.Logseq
   - org.prismlauncher.PrismLauncher
   - io.kinvolk.Headlamp
+  - md.obsidian.Obsidian
 
 homebrew_packages:
   - kubectl

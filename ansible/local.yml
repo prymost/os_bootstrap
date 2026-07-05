@@ -11,12 +11,13 @@
     - name: Load OS-specific variables
       ansible.builtin.include_vars:
         file: "vars/{{ ansible_facts['os_family'] }}.yml"
+      tags: packages
 
     - name: Configure repositories
       ansible.builtin.include_tasks: tasks/repositories.yml
 
     - name: Provision system packages and package managers
-      ansible.builtin.include_tasks: tasks/packages.yml
+      ansible.builtin.import_tasks: tasks/packages.yml
       tags: packages
 
     - name: Apply performance and kernel tweaks
