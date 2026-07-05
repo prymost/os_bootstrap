@@ -8,3 +8,12 @@
 *.tmp
 *.temp
 .antigravitycli
+ansible/vars/secrets.yml
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+

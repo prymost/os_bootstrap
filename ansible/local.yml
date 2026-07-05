@@ -32,7 +32,11 @@
     - name: Configure storage and mount points
       ansible.builtin.include_tasks: tasks/mounts.yml
 
+    - name: Configure Syncthing synchronization
+      ansible.builtin.include_tasks: tasks/syncthing.yml
+
     - name: Configure system update automation
+
       ansible.builtin.include_tasks: tasks/system_updates.yml
 
     - name: Configure backup automation

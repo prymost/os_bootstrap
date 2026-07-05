@@ -1,0 +1,113 @@
+---
+# ── 1. PRE-FLIGHT VALIDATION ──────────────────────────────────────────────
+
+- name: Check if Syncthing secrets file exists
+  ansible.builtin.stat:
+    path: "{{ playbook_dir }}/vars/secrets.yml"
+  register: secrets_file_stat
+
+- name: Fail if secrets.yml is missing
+  ansible.builtin.fail:
+    msg: >
+      The secrets file is missing! Please create a local secrets file at
+      'ansible/vars/secrets.yml' (which is gitignored) with the following content:
+
+      syncthing_nas_device_id: "YOUR_NAS_DEVICE_ID"
+      syncthing_nas_address: "tcp://<NAS_IP>:<PORT>"
+      syncthing_folder_id: "YOUR_FOLDER_ID"
+      syncthing_local_path: "/home/boris/MyNotes"
+  when: not secrets_file_stat.stat.exists
+
+- name: Load local secrets
+  ansible.builtin.include_vars:
+    file: vars/secrets.yml
+
+- name: Validate that all required Syncthing secrets are defined
+  ansible.builtin.command:
+    cmd: >
+      python3 {{ playbook_dir }}/files/configure-syncthing.py --validate
+      --nas-device-id "{{ syncthing_nas_device_id | default('') }}"
+      --nas-address "{{ syncthing_nas_address | default('') }}"
+      --folder-id "{{ syncthing_folder_id | default('') }}"
+      --local-path "{{ syncthing_local_path | default('') }}"
+  changed_when: false
+
+
+# ── 2. SYSTEM SERVICE CONFIGURATION ───────────────────────────────────────
+
+- name: Enable lingering for user boris to run user systemd services
+  ansible.builtin.command: loginctl enable-linger boris
+  args:
+    creates: /var/lib/systemd/linger/boris
+
+- name: Ensure target sync directory exists
+  ansible.builtin.file:
+    path: "{{ syncthing_local_path }}"
+    state: directory
+    owner: boris
+    group: boris
+    mode: "0700"
+
+- name: Enable and start Syncthing user service
+  ansible.builtin.systemd:
+    name: syncthing
+    enabled: yes
+    state: started
+    scope: user
+  become: yes
+  become_user: boris
+
+- name: Determine Syncthing configuration path
+  ansible.builtin.shell:
+    cmd: syncthing paths | grep -A 1 "Configuration file:" | tail -n 1 | xargs
+  register: syncthing_config_path_raw
+  changed_when: false
+  become: yes
+  become_user: boris
+
+- name: Set Syncthing config path fact
+  ansible.builtin.set_fact:
+    syncthing_config_path: "{{ syncthing_config_path_raw.stdout.strip() }}"
+
+- name: Wait for Syncthing to generate configuration directory
+  ansible.builtin.wait_for:
+    path: "{{ syncthing_config_path }}"
+    state: present
+    timeout: 15
+
+- name: Get local Syncthing device ID
+  ansible.builtin.command: syncthing device-id
+  register: local_device_id
+  changed_when: false
+  become: yes
+  become_user: boris
+
+# ── 3. CONFIGURATION AUTOMATION ───────────────────────────────────────────
+
+- name: Configure Syncthing devices and folders
+  ansible.builtin.command:
+    cmd: >
+      python3 {{ playbook_dir }}/files/configure-syncthing.py
+      --config "{{ syncthing_config_path }}"
+      --nas-device-id "{{ syncthing_nas_device_id }}"
+      --folder-id "{{ syncthing_folder_id }}"
+      --local-path "{{ syncthing_local_path }}"
+      --local-device-id "{{ local_device_id.stdout.strip() }}"
+      --nas-address "{{ syncthing_nas_address }}"
+  register: syncthing_config_result
+  changed_when: "syncthing_config_result.stdout.strip() == 'CHANGED'"
+  become: yes
+  become_user: boris
+
+- name: Restart Syncthing user service if config changed
+  ansible.builtin.systemd:
+    name: syncthing
+    state: restarted
+    scope: user
+  become: yes
+  become_user: boris
+  when: syncthing_config_result.changed
+
+- name: Output local device ID for manual pairing on NAS
+  ansible.builtin.debug:
+    msg: "Your local Syncthing Device ID is: {{ local_device_id.stdout.strip() }}. Make sure to add this ID on your NAS Syncthing console and share the folder '{{ syncthing_folder_id }}' with it."

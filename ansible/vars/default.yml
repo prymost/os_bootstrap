@@ -11,6 +11,8 @@ common_cli_packages:
   - borgbackup
   - stow
   - flatpak
+  - syncthing
+
 
 common_dev_packages:
   - zsh

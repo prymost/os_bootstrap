@@ -2,6 +2,15 @@ I will record changes to this file just so i don't need to look at commit histor
 
 # Changelog
 
+2026-07-04:
+- Integrated automated local Syncthing directory synchronization with a remote Synology NAS.
+- Created a gitignored local `ansible/vars/secrets.yml` file to store private pairing parameters (such as Device IDs, addresses, and local folder paths) securely.
+- Added a Python utility `ansible/files/configure-syncthing.py` for early input validation and XML-based device/folder configuration.
+- Added modular Ansible tasks in `ansible/tasks/syncthing.yml` to handle validation, user lingering via `loginctl`, systemd user service management, and dynamic path resolution.
+- Registered the `syncthing` package in `ansible/vars/default.yml` and included the tasks in `ansible/local.yml`.
+- Added python compiled cache (`__pycache__/`, `*.pyc`, etc.) to `.gitignore`.
+- Documented Syncthing secrets and manual pairing instructions in `README.md` and `AGENTS.md`.
+
 2026-06-23:
 - Added `io.speedofsound.SpeedOfSound` Flatpak to default packages list for declarative offline voice dictation.
 - Restructured Ansible package tasks and playbook tags to allow running only package-related steps via `--tags packages`.

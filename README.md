@@ -94,3 +94,31 @@ To restore a complete archive into your current working directory:
 ```bash
 borg extract ~/Backup/borg-repo::<archive_name>
 ```
+
+---
+
+## 🔄 Syncthing Synchronization
+
+Syncthing is configured to synchronize directories (e.g., Obsidian vaults) with my NAS.
+
+### 1. Configuration Secrets
+
+Since Syncthing parameters (Device IDs, paths) are private, they are stored in a local, gitignored file. To configure Syncthing from scratch, create `ansible/vars/secrets.yml` with the following variables:
+
+```yaml
+---
+syncthing_nas_device_id: "YOUR_NAS_DEVICE_ID"
+syncthing_nas_address: "tcp://<NAS_IP>:<PORT>"
+syncthing_folder_id: "YOUR_FOLDER_ID"
+syncthing_local_path: "/home/boris/MyNotes"
+```
+
+The playbook will validate this file and fail early with a clear warning if it is missing or incomplete.
+
+### 2. Manual Pairing Step
+
+After running the playbook:
+1. The local Syncthing daemon will be installed and configured as a systemd user service.
+2. The playbook outputs your local Device ID.
+3. Access your NAS Syncthing console, add your local Device ID as a remote device, and share the configured Folder ID (`syncthing_folder_id`) with it to complete the pairing.
+
