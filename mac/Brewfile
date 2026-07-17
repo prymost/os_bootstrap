@@ -4,15 +4,7 @@
 # CLI Tools
 brew "git"
 brew "jq"
-brew "bat"
 brew "direnv"
-brew "micro"
-brew "awscli"
-
-# Programming Languages
-brew "rbenv"
-brew "ruby-build"
-brew "pipenv"
 
 # Terminal Tools
 brew "zsh"
@@ -22,13 +14,7 @@ brew "zsh-autosuggestions"
 cask "visual-studio-code"
 cask "docker"
 cask "brave-browser"
-cask "logseq"
 cask "rectangle"
-cask "vlc"
-cask "discord"
-cask "zoom"
-cask "synology-drive"
-cask "google-drive"
 cask "iterm2"
 
 # macOS-specific

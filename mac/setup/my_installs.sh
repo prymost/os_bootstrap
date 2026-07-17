@@ -13,16 +13,8 @@ if [[ -f "$BREWFILE_PATH" ]]; then
     echo "📦 Installing packages from Brewfile..."
     brew bundle install --file="${BREWFILE_PATH}"
 else
-    echo "❌ No Brewfile found. Creating minimal fallback..."
-    # Fallback installation
-    brew install git jq rbenv python@3.13 zsh zsh-autosuggestions
-    brew install --cask visual-studio-code iterm2 brave-browser
+    echo "❌ No Brewfile found."
 fi
-
-# Ruby Setup
-rbenv init
-# Verify that rbenv is properly set up using this rbenv-doctor script
-curl -fsSL https://github.com/rbenv/rbenv-installer/raw/main/bin/rbenv-doctor | bash
 
 # Oh My Zsh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
@@ -37,9 +29,6 @@ if [[ -f "$SHARED_ZSHRC" ]]; then
 else
     echo "⚠️  Shared .zshrc not found at $SHARED_ZSHRC"
 fi
-
-# Zrefresh
-# source ~/.zshrc
 
 echo "Cleaning up..."
 brew cleanup
