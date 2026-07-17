@@ -3,6 +3,7 @@ set -uo pipefail
 IFS=$'\n\t'
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+REPO_DIR="$(dirname "$SCRIPT_DIR")"
 
 echo "🚀 Starting macOS bootstrap process..."
 echo "📁 Script directory: $SCRIPT_DIR"
@@ -19,26 +20,42 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 1
 fi
 
-echo "🔧 Running initial setup..."
-"${SCRIPT_DIR}/setup/initial.sh"
+# 1. Ensure Xcode Command Line Tools are installed
+if ! xcode-select -p &>/dev/null; then
+    echo "🛠️ Xcode Command Line Tools not found. Initiating installation..."
+    xcode-select --install
+    echo "⚠️ Please complete the Xcode installation dialog and then press any key to continue..."
+    read -n 1 -s -r
+else
+    echo "✅ Xcode Command Line Tools already installed"
+fi
 
-echo "⚙️  Configuring macOS settings..."
-"${SCRIPT_DIR}/setup/configure_osx.sh"
+# 2. Ensure Homebrew is installed
+if ! command -v brew &>/dev/null; then
+    echo "🍺 Homebrew not found. Installing..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    
+    # Configure path for the current shell session
+    if [[ $(uname -m) == "arm64" ]]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+    else
+        eval "$(/usr/local/bin/brew shellenv)"
+    fi
+else
+    echo "✅ Homebrew already installed"
+fi
 
-echo "📦 Installing applications and packages..."
-"${SCRIPT_DIR}/setup/my_installs.sh"
+# 3. Ensure Ansible is installed
+if ! command -v ansible &>/dev/null; then
+    echo "⚙️ Ansible not found. Installing via Homebrew..."
+    brew install ansible
+else
+    echo "✅ Ansible already installed"
+fi
 
-echo "🔄 Restarting affected applications..."
-# Restart affected applications
-for app in "Activity Monitor" "cfprefsd" "Dock" "Finder" "SystemUIServer"; do
-    killall "${app}" &> /dev/null || true
-done
-
-echo "⚙️  Setting up automations..."
-"${SCRIPT_DIR}/setup/automations.sh"
+# 4. Run Ansible Playbook
+echo "🚀 Running Ansible playbook to provision workstation..."
+ansible-playbook "${REPO_DIR}/ansible/local.yml"
 
 echo "✅ Bootstrap process completed!"
 echo "🔄 Please restart your computer to ensure all changes take effect."
-
-# Uncomment the line below if you want to restore from backup
-# "${SCRIPT_DIR}/setup/restore.sh"

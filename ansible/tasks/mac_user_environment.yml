@@ -1,0 +1,62 @@
+---
+# ── 1. OH MY ZSH SETUP ────────────────────────────────────────────────────
+
+- name: Check if Oh My Zsh is installed
+  ansible.builtin.stat:
+    path: "{{ ansible_env.HOME }}/.oh-my-zsh"
+  register: omz_stat
+
+- name: Install Oh My Zsh (unattended)
+  ansible.builtin.shell:
+    cmd: sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+  when: not omz_stat.stat.exists
+
+- name: Clone Oh My Zsh custom plugins
+  ansible.builtin.git:
+    repo: "{{ item.repo }}"
+    dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/{{ item.name }}"
+    depth: 1
+  loop:
+    - {
+        name: "zsh-autosuggestions",
+        repo: "https://github.com/zsh-users/zsh-autosuggestions",
+      }
+    - {
+        name: "zsh-syntax-highlighting",
+        repo: "https://github.com/zsh-users/zsh-syntax-highlighting.git",
+      }
+
+# ── 2. DOTFILES LINKING via GNU STOW ─────────────────────────────────────
+
+- name: Check status of dotfiles to prevent overwriting symlinks
+  ansible.builtin.stat:
+    path: "{{ ansible_env.HOME }}/{{ item }}"
+  loop:
+    - .zshrc
+    - .vimrc
+    - .config/kitty/kitty.conf
+  register: dotfile_stats
+
+- name: Remove existing physical dotfiles to prevent Stow conflicts
+  ansible.builtin.file:
+    path: "{{ item.stat.path }}"
+    state: absent
+  loop: "{{ dotfile_stats.results }}"
+  when: item.stat.exists and not (item.stat.path | realpath).startswith(playbook_dir | dirname + '/shared/')
+
+- name: Link dotfiles using GNU Stow
+  ansible.builtin.command:
+    cmd: "stow -d {{ playbook_dir | dirname }}/shared -t {{ ansible_env.HOME }} zsh vim kitty"
+
+# ── 3. GIT CONFIGURATION ──────────────────────────────────────────────────
+
+- name: Configure global Git settings
+  community.general.git_config:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    scope: global
+  loop:
+    - { name: "push.autoSetupRemote", value: "true" }
+    - { name: "push.default", value: "current" }
+    - { name: "core.editor", value: "code -n -w" }
+    - { name: "remote.origin.prune", value: "true" }

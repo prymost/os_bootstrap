@@ -1,0 +1,30 @@
+# macOS (Darwin) specific package names and settings
+
+darwin_brew_packages:
+  # GNU Utilities
+  - coreutils
+  - gnu-sed
+  - gnu-tar
+  - gnu-indent
+  - gnu-which
+  - gnu-grep
+  - findutils
+  # CLI Tools
+  - git
+  - jq
+  - direnv
+  # Package manager helper
+  - stow
+  # Shell utilities
+  - zsh
+  - zsh-autosuggestions
+  - bash
+
+darwin_cask_packages:
+  - visual-studio-code
+  - docker
+  - brave-browser
+  - obsidian
+  - rectangle
+  - iterm2
+  - bruno

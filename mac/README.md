@@ -1,6 +1,6 @@
-# macOS Setup Scripts
+# macOS Setup via Ansible
 
-My pesonal scripts for setting up and maintaining a new MacBook with my preferred configuration.
+My personal scripts and Ansible configurations for setting up and maintaining a new MacBook with my preferred configuration.
 
 ## 🚀 Quick Start
 
@@ -14,14 +14,13 @@ My pesonal scripts for setting up and maintaining a new MacBook with my preferre
    ./bootstrap.sh
    ```
 
-## 📁 Script Overview
+## 📁 Script & Playbook Overview
 
-- **`bootstrap.sh`** - Main entry point that orchestrates the entire setup
-- **`check_compatibility.sh`** - Validates system compatibility before setup
-- **`setup/initial.sh`** - Installs Xcode tools, Homebrew, and core utilities
-- **`setup/my_installs.sh`** - Uses static Brewfile to install applications and configures zsh with shared .zshrc template
-- **`setup/configure_osx.sh`** - Configures macOS system preferences
-- **`setup/restore.sh`** - Restores backed-up configuration files
+- **`bootstrap.sh`** - Main trigger script that installs Xcode Command Line Tools, Homebrew, and Ansible, then runs the Ansible playbook.
+- **`check_compatibility.sh`** - Validates system compatibility before setup.
+- **`setup/configure_osx.sh`** - Configures macOS system preferences (called by Ansible).
+- **`setup/restore.sh`** - Restores backed-up configuration files (optional/manual).
+- **`ansible/local.yml`** - The Ansible playbook that provisions packages, dotfiles, settings, and updates.
 
 ## 💻 Compatibility
 
@@ -29,28 +28,7 @@ My pesonal scripts for setting up and maintaining a new MacBook with my preferre
 - ✅ **Apple Silicon & Intel Macs** - Universal support
 - ✅ **zsh shell** - Optimized for modern macOS default shell
 
-## 🛠 Alternative Usage
-
-### Using Brewfile
-```bash
-# Run setup first, then:
-brew bundle install
-```
-
-### Running Individual Scripts
-```bash
-# Setup only core tools
-./setup/initial.sh
-
-# Install applications only (uses static Brewfile)
-./setup/my_installs.sh
-
-# Configure system settings only
-./setup/configure_osx.sh
-```
-
 ## 🔄 Maintenance
 
 - **`update_tools.sh`** - Update Homebrew packages and Brewfile
 - **`backup.sh`** - Backup current configuration
-- Run `brew bundle cleanup` to remove unlisted packages

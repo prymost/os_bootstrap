@@ -1,11 +1,16 @@
 ---
-- name: Workstation Declarative Provisioning Playbook
+- name: Workstation Declarative Provisioning Playbook (Linux)
   hosts: localhost
   connection: local
   become: yes
 
   vars_files:
     - vars/default.yml
+
+  pre_tasks:
+    - name: End play if running on macOS
+      ansible.builtin.meta: end_play
+      when: ansible_facts['os_family'] == 'Darwin'
 
   tasks:
     - name: Load OS-specific variables
@@ -36,8 +41,39 @@
       ansible.builtin.include_tasks: tasks/syncthing.yml
 
     - name: Configure system update automation
-
       ansible.builtin.include_tasks: tasks/system_updates.yml
 
     - name: Configure backup automation
       ansible.builtin.include_tasks: tasks/backup.yml
+
+- name: Workstation Declarative Provisioning Playbook (macOS)
+  hosts: localhost
+  connection: local
+  become: no
+
+  vars_files:
+    - vars/default.yml
+
+  pre_tasks:
+    - name: End play if not running on macOS
+      ansible.builtin.meta: end_play
+      when: ansible_facts['os_family'] != 'Darwin'
+
+  tasks:
+    - name: Load OS-specific variables
+      ansible.builtin.include_vars:
+        file: "vars/{{ ansible_facts['os_family'] }}.yml"
+      tags: packages
+
+    - name: Provision macOS packages and applications
+      ansible.builtin.import_tasks: tasks/mac_packages.yml
+      tags: packages
+
+    - name: Configure macOS user environment and dotfiles
+      ansible.builtin.include_tasks: tasks/mac_user_environment.yml
+
+    - name: Configure macOS settings
+      ansible.builtin.include_tasks: tasks/mac_settings.yml
+
+    - name: Configure macOS daily update automation
+      ansible.builtin.include_tasks: tasks/mac_updates.yml

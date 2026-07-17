@@ -5,7 +5,7 @@ This project contains a set of bootstrap scripts and playbooks for automating th
 ## Key Technologies
 
 *   **Windows:** PowerShell, Winget
-*   **macOS:** Bash, Homebrew
+*   **macOS:** Ansible, Homebrew, Launchctl (via `mac/bootstrap.sh` trigger script)
 *   **Linux (Fedora & Pop!_OS/Debian):** Ansible, DNF, APT, Flatpak, Linuxbrew, Systemd Timers
 *   **Fedora Automation:** Anaconda Kickstart (`ks.cfg`), Ventoy automated installation
 
@@ -39,7 +39,7 @@ PowerShell -ExecutionPolicy Bypass -File windows/bootstrap-windows11.ps1
 
 ## Development Conventions
 
-*   **Declarative Infrastructure as Code (Linux)**: The workstation setup is orchestrated by `ansible/local.yml`. Specific tasks are modularized under `ansible/tasks/`, templates in `ansible/templates/`, static files/scripts in `ansible/files/`, and OS variables in `ansible/vars/`.
+*   **Declarative Infrastructure as Code (Linux & macOS)**: The workstation setup is orchestrated by `ansible/local.yml`. Specific tasks are modularized under `ansible/tasks/`, templates in `ansible/templates/`, static files/scripts in `ansible/files/`, and OS variables in `ansible/vars/`.
 *   **Idempotency**: The Ansible playbook and shell scripts are designed to be run multiple times safely without side effects.
 *   **Shared Configuration**: The `shared` directory contains shared templates (e.g. `.zshrc`, `kitty.conf`, `.vimrc`) linked via GNU Stow.
 *   **Secrets & Credentials**: Private workstation credentials (such as Syncthing pairing config) are stored in `ansible/vars/secrets.yml` which is gitignored to avoid leaking credentials. Playbook validation checks enforce its structure.

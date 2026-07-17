@@ -1,0 +1,11 @@
+---
+- name: Install Homebrew formulas
+  community.general.homebrew:
+    name: "{{ darwin_brew_packages }}"
+    state: present
+    update_homebrew: yes
+
+- name: Install Homebrew casks
+  community.general.homebrew_cask:
+    name: "{{ darwin_cask_packages }}"
+    state: present
