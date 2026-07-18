@@ -24,3 +24,4 @@ os_other_packages:
   - powerline-fonts
   - mesa-va-drivers-freeworld
   - kde-partitionmanager
+  - kernel-modules-extra # Provides xpad and hid-playstation for Xbox/PS controllers
