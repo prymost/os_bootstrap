@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -uo pipefail
+set -euo pipefail
 IFS=$'\n\t'
 
 echo "Configuring OSX..."

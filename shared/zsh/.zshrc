@@ -90,7 +90,7 @@ DISABLE_UPDATE_PROMPT="true"
 # Platform-specific plugin configurations
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS plugins
-    plugins=(git aws docker zsh-autosuggestions)
+    plugins=(git aws docker zsh-autosuggestions zsh-syntax-highlighting)
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     # Linux plugins (includes WSL)
     plugins=(git kubectl zsh-autosuggestions zsh-syntax-highlighting)

@@ -53,7 +53,11 @@ else
     echo "✅ Ansible already installed"
 fi
 
-# 4. Run Ansible Playbook
+# 4. Install required Ansible collections
+echo "📦 Installing Ansible collections..."
+ansible-galaxy collection install -r "${REPO_DIR}/ansible/requirements.yml"
+
+# 5. Run Ansible Playbook
 echo "🚀 Running Ansible playbook to provision workstation..."
 ansible-playbook "${REPO_DIR}/ansible/local.yml"
 

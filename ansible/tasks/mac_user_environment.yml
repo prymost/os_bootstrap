@@ -46,7 +46,8 @@
 
 - name: Link dotfiles using GNU Stow
   ansible.builtin.command:
-    cmd: "stow -d {{ playbook_dir | dirname }}/shared -t {{ ansible_env.HOME }} zsh vim kitty"
+    cmd: "stow --restow -d {{ playbook_dir | dirname }}/shared -t {{ ansible_env.HOME }} zsh vim kitty"
+  changed_when: false
 
 # ── 3. GIT CONFIGURATION ──────────────────────────────────────────────────
 

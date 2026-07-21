@@ -13,6 +13,7 @@ darwin_brew_packages:
   - git
   - jq
   - direnv
+  - kubectl
   # Package manager helper
   - stow
   # Shell utilities

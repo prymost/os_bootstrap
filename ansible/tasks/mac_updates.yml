@@ -20,11 +20,17 @@
   register: user_uid
   changed_when: false
 
+- name: Check if LaunchAgent is already loaded
+  ansible.builtin.shell:
+    cmd: launchctl print "gui/{{ user_uid.stdout.strip() }}/com.user.os_bootstrap.update" 2>/dev/null && echo "loaded" || echo "not_loaded"
+  register: launchagent_status
+  changed_when: false
+  when: launchagent_plist.changed
+
 - name: Unload existing launchctl task
   ansible.builtin.shell:
     cmd: launchctl bootout "gui/{{ user_uid.stdout.strip() }}" "{{ ansible_env.HOME }}/Library/LaunchAgents/com.user.os_bootstrap.update.plist"
-  failed_when: false
-  when: launchagent_plist.changed
+  when: launchagent_plist.changed and launchagent_status.stdout == "loaded"
 
 - name: Load new launchctl task
   ansible.builtin.shell:

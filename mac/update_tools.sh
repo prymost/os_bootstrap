@@ -36,22 +36,6 @@ else
     echo "Ruby not found, skipping gem updates"
 fi
 
-echo "🐍 ***** Python Packages Update *****"
-if command -v python3 &> /dev/null; then
-    echo "Updating pip..."
-    python3 -m pip install --upgrade pip
-
-    # Update global packages if any are installed
-    if python3 -m pip list --user 2>/dev/null | grep -q .; then
-        echo "Updating user-installed Python packages..."
-        python3 -m pip list --user --outdated --format=freeze | grep -v '^\-e' | cut -d = -f 1 | xargs -n1 python3 -m pip install --user -U
-    else
-        echo "No user-installed Python packages found"
-    fi
-else
-    echo "Python3 not found, skipping pip updates"
-fi
-
 echo "📦 ***** NPM Packages Update *****"
 if command -v npm &> /dev/null; then
     echo "Updating npm itself..."
