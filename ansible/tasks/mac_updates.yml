@@ -1,18 +1,18 @@
 ---
 - name: Ensure LaunchAgents directory exists
   ansible.builtin.file:
-    path: "{{ ansible_env.HOME }}/Library/LaunchAgents"
+    path: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents"
     state: directory
     mode: "0755"
 
 - name: Deploy macOS update LaunchAgent plist
   ansible.builtin.template:
     src: "{{ playbook_dir | dirname }}/mac/configs/com.user.os_bootstrap.update.plist"
-    dest: "{{ ansible_env.HOME }}/Library/LaunchAgents/com.user.os_bootstrap.update.plist"
+    dest: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.os_bootstrap.update.plist"
     mode: "0644"
   vars:
     SCRIPT_PATH: "{{ playbook_dir | dirname }}/mac/update_tools.sh"
-    LOG_PATH: "{{ ansible_env.HOME }}/Library/Logs/os_bootstrap_update.log"
+    LOG_PATH: "{{ ansible_facts.env.HOME }}/Library/Logs/os_bootstrap_update.log"
   register: launchagent_plist
 
 - name: Get current user UID
@@ -29,10 +29,10 @@
 
 - name: Unload existing launchctl task
   ansible.builtin.shell:
-    cmd: launchctl bootout "gui/{{ user_uid.stdout.strip() }}" "{{ ansible_env.HOME }}/Library/LaunchAgents/com.user.os_bootstrap.update.plist"
+    cmd: launchctl bootout "gui/{{ user_uid.stdout.strip() }}" "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.os_bootstrap.update.plist"
   when: launchagent_plist.changed and launchagent_status.stdout == "loaded"
 
 - name: Load new launchctl task
   ansible.builtin.shell:
-    cmd: launchctl bootstrap "gui/{{ user_uid.stdout.strip() }}" "{{ ansible_env.HOME }}/Library/LaunchAgents/com.user.os_bootstrap.update.plist"
+    cmd: launchctl bootstrap "gui/{{ user_uid.stdout.strip() }}" "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.os_bootstrap.update.plist"
   when: launchagent_plist.changed

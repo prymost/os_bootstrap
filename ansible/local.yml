@@ -3,11 +3,16 @@
   hosts: localhost
   connection: local
   become: yes
+  gather_facts: false
 
   vars_files:
     - vars/default.yml
 
   pre_tasks:
+    - name: Gather facts
+      ansible.builtin.setup:
+      become: no
+
     - name: End play if running on macOS
       ansible.builtin.meta: end_play
       when: ansible_facts['os_family'] == 'Darwin'

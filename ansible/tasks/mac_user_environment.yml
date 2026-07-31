@@ -3,7 +3,7 @@
 
 - name: Check if Oh My Zsh is installed
   ansible.builtin.stat:
-    path: "{{ ansible_env.HOME }}/.oh-my-zsh"
+    path: "{{ ansible_facts.env.HOME }}/.oh-my-zsh"
   register: omz_stat
 
 - name: Install Oh My Zsh (unattended)
@@ -14,7 +14,7 @@
 - name: Clone Oh My Zsh custom plugins
   ansible.builtin.git:
     repo: "{{ item.repo }}"
-    dest: "{{ ansible_env.HOME }}/.oh-my-zsh/custom/plugins/{{ item.name }}"
+    dest: "{{ ansible_facts.env.HOME }}/.oh-my-zsh/custom/plugins/{{ item.name }}"
     depth: 1
   loop:
     - {
@@ -30,7 +30,7 @@
 
 - name: Check status of dotfiles to prevent overwriting symlinks
   ansible.builtin.stat:
-    path: "{{ ansible_env.HOME }}/{{ item }}"
+    path: "{{ ansible_facts.env.HOME }}/{{ item }}"
   loop:
     - .zshrc
     - .vimrc
@@ -46,7 +46,7 @@
 
 - name: Link dotfiles using GNU Stow
   ansible.builtin.command:
-    cmd: "stow --restow -d {{ playbook_dir | dirname }}/shared -t {{ ansible_env.HOME }} zsh vim kitty"
+    cmd: "stow --restow -d {{ playbook_dir | dirname }}/shared -t {{ ansible_facts.env.HOME }} zsh vim kitty"
   changed_when: false
 
 # ── 3. GIT CONFIGURATION ──────────────────────────────────────────────────

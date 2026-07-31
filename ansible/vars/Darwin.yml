@@ -7,7 +7,6 @@ darwin_brew_packages:
   - gnu-tar
   - gnu-indent
   - gnu-which
-  - gnu-grep
   - findutils
   # CLI Tools
   - git

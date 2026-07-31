@@ -90,7 +90,7 @@ DISABLE_UPDATE_PROMPT="true"
 # Platform-specific plugin configurations
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS plugins
-    plugins=(git aws docker zsh-autosuggestions zsh-syntax-highlighting)
+    plugins=(git aws docker ruby kubectl zsh-autosuggestions zsh-syntax-highlighting)
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
     # Linux plugins (includes WSL)
     plugins=(git kubectl zsh-autosuggestions zsh-syntax-highlighting)
@@ -192,3 +192,6 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
     fi
 fi
+
+# Machine-local overrides (never tracked in this repo)
+[ -f "$HOME/.zshrc.work" ] && source "$HOME/.zshrc.work"
