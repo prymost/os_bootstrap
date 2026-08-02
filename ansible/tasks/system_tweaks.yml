@@ -48,3 +48,23 @@
 - name: Reload udev rules
   ansible.builtin.shell: udevadm control --reload-rules && udevadm trigger
   when: udev_rules.changed
+
+# ── 3. DOCKER CONFIGURATION ──────────────────────────────────────────────
+
+- name: Ensure docker group exists
+  ansible.builtin.group:
+    name: docker
+    state: present
+
+- name: Add user boris to docker group
+  ansible.builtin.user:
+    name: boris
+    groups: docker
+    append: yes
+
+- name: Enable and start Docker service
+  ansible.builtin.systemd:
+    name: docker
+    enabled: yes
+    state: started
+
