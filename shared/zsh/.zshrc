@@ -193,5 +193,41 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     fi
 fi
 
+# Start a disposable pi.dev sandbox in the current directory
+pibox() {
+    local envfile="${HOME}/.config/pi-sandbox.env"
+
+    if [[ ! -f "$envfile" ]]; then
+        echo "pibox: missing $envfile — create it with your provider API keys first." >&2
+        return 1
+    fi
+
+    # Ensure the config volume exists
+    docker volume inspect pi-config >/dev/null 2>&1 || docker volume create pi-config >/dev/null
+
+    # Build optional mounts based on host environment to match user devcontainer settings
+    local extra_mounts=()
+    [[ -d "${HOME}/.ssh" ]] && extra_mounts+=(-v "${HOME}/.ssh:/home/agent/.ssh:ro")
+    [[ -f "${HOME}/.gitconfig" ]] && extra_mounts+=(-v "${HOME}/.gitconfig:/home/agent/.gitconfig:ro")
+    [[ -d "${HOME}/.kube" ]] && extra_mounts+=(-v "${HOME}/.kube:/home/agent/.kube")
+
+    docker run -it --rm \
+        --cap-drop=ALL \
+        --security-opt no-new-privileges \
+        --pids-limit 512 \
+        --memory 4g \
+        --user "$(id -u)":"$(id -g)" \
+        -v pi-config:/home/agent \
+        -v "$PWD":/workspace:z \
+        -w /workspace \
+        --env-file "$envfile" \
+        "${extra_mounts[@]}" \
+        pibox:latest "$@"
+}
+
+
+
+
 # Machine-local overrides (never tracked in this repo)
 [ -f "$HOME/.zshrc.work" ] && source "$HOME/.zshrc.work"
+

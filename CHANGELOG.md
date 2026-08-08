@@ -2,6 +2,9 @@ I will record changes to this file just so i don't need to look at commit histor
 
 # Changelog
 
+2026-08-08:
+- Added `pibox` Docker sandbox setup and shell integration for running isolated `pi` sessions.
+
 2026-07-04:
 - Integrated automated local Syncthing directory synchronization with a remote Synology NAS.
 - Created a gitignored local `ansible/vars/secrets.yml` file to store private pairing parameters (such as Device IDs, addresses, and local folder paths) securely.

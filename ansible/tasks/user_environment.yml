@@ -69,3 +69,38 @@
   become: yes
   become_user: boris
   when: not kitty_stat.stat.exists
+
+# ── 3. PIBOX SANDBOX CONFIGURATION ───────────────────────────────────────
+
+- name: Ensure ~/.config directory exists
+  ansible.builtin.file:
+    path: /home/boris/.config
+    state: directory
+    owner: boris
+    group: boris
+    mode: '0755'
+
+- name: Initialize ~/.config/pi-sandbox.env from example if not exists
+  ansible.builtin.copy:
+    src: /home/boris/Workspace/os_bootstrap/linux/pibox/pi-sandbox.env.example
+    dest: /home/boris/.config/pi-sandbox.env
+    owner: boris
+    group: boris
+    mode: '0600'
+    force: no
+
+- name: Check if Docker is installed
+  ansible.builtin.command: which docker
+  register: docker_check
+  failed_when: false
+  changed_when: false
+  become: yes
+  become_user: boris
+
+- name: Build initial pibox docker container
+  ansible.builtin.command:
+    cmd: docker build --pull -t pibox:latest /home/boris/Workspace/os_bootstrap/linux/pibox
+  become: yes
+  become_user: boris
+  when: docker_check.rc == 0
+

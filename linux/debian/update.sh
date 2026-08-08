@@ -43,4 +43,14 @@ else
     echo "ℹ️ Kitty not found, skipping."
 fi
 
+# Update pibox docker container
+if command -v docker &> /dev/null; then
+    echo "🐳 Updating pibox docker container..."
+    docker build --pull -t pibox:latest /home/boris/Workspace/os_bootstrap/linux/pibox
+    echo "✅ pibox docker container updated!"
+else
+    echo "ℹ️ Docker not found, skipping pibox update."
+fi
+
 echo "✅ All user updates completed!"
+
