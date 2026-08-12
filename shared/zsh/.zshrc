@@ -130,10 +130,6 @@ alias zconfig="code ~/.zshrc"
 alias zrefresh="source ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
-# Git Aliases
-alias gcm="git checkout master"
-alias rbtom="git rebase -i origin/master"
-
 # Python3 by default (updated for modern Homebrew Python)
 if command -v python3 &> /dev/null; then
     alias python="python3"
