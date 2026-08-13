@@ -13,6 +13,7 @@ darwin_brew_packages:
   - jq
   - direnv
   - kubectl
+  - podman
   # Package manager helper
   - stow
   # Shell utilities
@@ -22,7 +23,6 @@ darwin_brew_packages:
 
 darwin_cask_packages:
   - visual-studio-code
-  - docker
   - brave-browser
   - obsidian
   - rectangle

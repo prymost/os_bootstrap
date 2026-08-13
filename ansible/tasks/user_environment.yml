@@ -3,7 +3,7 @@
 
 - name: Check status of dotfiles to prevent overwriting symlinks
   ansible.builtin.stat:
-    path: "/home/boris/{{ item }}"
+    path: "{{ ansible_facts.env.HOME }}/{{ item }}"
   loop:
     - .zshrc
     - .vimrc
@@ -16,11 +16,11 @@
     path: "{{ item.stat.path }}"
     state: absent
   loop: "{{ dotfile_stats.results }}"
-  when: item.stat.exists and not (item.stat.path | realpath).startswith('/home/boris/Workspace/os_bootstrap/shared/')
+  when: item.stat.exists and not (item.stat.path | realpath).startswith(playbook_dir | dirname + '/shared/')
 
 - name: Link dotfiles using GNU Stow
   ansible.builtin.command:
-    cmd: "stow -d /home/boris/Workspace/os_bootstrap/shared -t /home/boris zsh vim kitty"
+    cmd: "stow -d {{ playbook_dir | dirname }}/shared -t {{ ansible_facts.env.HOME }} zsh vim kitty"
   become: yes
   become_user: boris
 
@@ -33,7 +33,7 @@
 
 - name: Check if Oh My Zsh is installed
   ansible.builtin.stat:
-    path: /home/boris/.oh-my-zsh
+    path: "{{ ansible_facts.env.HOME }}/.oh-my-zsh"
   register: omz_stat
 
 - name: Install Oh My Zsh
@@ -45,7 +45,7 @@
 - name: Clone Oh My Zsh custom plugins
   ansible.builtin.git:
     repo: "{{ item.repo }}"
-    dest: "/home/boris/.oh-my-zsh/custom/plugins/{{ item.name }}"
+    dest: "{{ ansible_facts.env.HOME }}/.oh-my-zsh/custom/plugins/{{ item.name }}"
     depth: 1
   loop:
     - {
@@ -61,7 +61,7 @@
 
 - name: Check if Kitty Terminal is installed
   ansible.builtin.stat:
-    path: /home/boris/.local/bin/kitty
+    path: "{{ ansible_facts.env.HOME }}/.local/bin/kitty"
   register: kitty_stat
 
 - name: Install and configure Kitty Terminal
@@ -74,7 +74,7 @@
 
 - name: Ensure ~/.config directory exists
   ansible.builtin.file:
-    path: /home/boris/.config
+    path: "{{ ansible_facts.env.HOME }}/.config"
     state: directory
     owner: boris
     group: boris
@@ -82,8 +82,8 @@
 
 - name: Initialize ~/.config/pi-sandbox.env from example if not exists
   ansible.builtin.copy:
-    src: /home/boris/Workspace/os_bootstrap/linux/pibox/pi-sandbox.env.example
-    dest: /home/boris/.config/pi-sandbox.env
+    src: "{{ playbook_dir | dirname }}/linux/pibox/pi-sandbox.env.example"
+    dest: "{{ ansible_facts.env.HOME }}/.config/pi-sandbox.env"
     owner: boris
     group: boris
     mode: '0600'
@@ -99,7 +99,7 @@
 
 - name: Build initial pibox docker container
   ansible.builtin.command:
-    cmd: docker build --pull -t pibox:latest /home/boris/Workspace/os_bootstrap/linux/pibox
+    cmd: "docker build --pull -t pibox:latest {{ playbook_dir | dirname }}/linux/pibox"
   become: yes
   become_user: boris
   when: docker_check.rc == 0

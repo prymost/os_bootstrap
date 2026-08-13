@@ -5,6 +5,7 @@
 brew "git"
 brew "jq"
 brew "direnv"
+brew "podman"
 
 # Terminal Tools
 brew "zsh"
@@ -12,7 +13,6 @@ brew "zsh-autosuggestions"
 
 # Desktop Applications
 cask "visual-studio-code"
-cask "docker"
 cask "brave-browser"
 cask "rectangle"
 cask "iterm2"

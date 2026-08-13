@@ -61,3 +61,46 @@
     - { name: "push.default", value: "current" }
     - { name: "core.editor", value: "code -n -w" }
     - { name: "remote.origin.prune", value: "true" }
+
+# ── 4. CONTAINER RUNTIME (PODMAN) ────────────────────────────────────────
+
+- name: Check if a podman machine exists
+  ansible.builtin.command: podman machine list --format json
+  register: podman_machine_list
+  changed_when: false
+
+- name: Initialize podman machine
+  ansible.builtin.command: podman machine init
+  when: podman_machine_list.stdout | trim == '[]'
+
+- name: Start podman machine
+  ansible.builtin.command: podman machine start
+  register: podman_machine_start
+  failed_when: podman_machine_start.rc != 0 and 'already running' not in podman_machine_start.stderr
+  changed_when: podman_machine_start.rc == 0
+
+# ── 5. PIBOX SANDBOX CONFIGURATION ───────────────────────────────────────
+
+- name: Ensure ~/.config directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.config"
+    state: directory
+    mode: '0755'
+
+- name: Initialize ~/.config/pi-sandbox.env from example if not exists
+  ansible.builtin.copy:
+    src: "{{ playbook_dir | dirname }}/linux/pibox/pi-sandbox.env.example"
+    dest: "{{ ansible_facts.env.HOME }}/.config/pi-sandbox.env"
+    mode: '0600'
+    force: no
+
+- name: Check if podman is installed
+  ansible.builtin.command: which podman
+  register: podman_check
+  failed_when: false
+  changed_when: false
+
+- name: Build initial pibox container image
+  ansible.builtin.command:
+    cmd: "podman build --pull -t pibox:latest {{ playbook_dir | dirname }}/linux/pibox"
+  when: podman_check.rc == 0

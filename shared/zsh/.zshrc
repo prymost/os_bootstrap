@@ -198,8 +198,18 @@ pibox() {
         return 1
     fi
 
-    # Ensure the config volume exists
-    docker volume inspect pi-config >/dev/null 2>&1 || docker volume create pi-config >/dev/null
+    local runtime
+    if command -v docker &>/dev/null; then
+        runtime=docker
+    elif command -v podman &>/dev/null; then
+        runtime=podman
+    else
+        echo "pibox: no container runtime found (looked for docker, podman)." >&2
+        return 1
+    fi
+
+    # Ensure the config dir exists so the bind mount isn't created root-owned
+    mkdir -p "${HOME}/.pi"
 
     # Build optional mounts based on host environment to match user devcontainer settings
     local extra_mounts=()
@@ -207,13 +217,14 @@ pibox() {
     [[ -f "${HOME}/.gitconfig" ]] && extra_mounts+=(-v "${HOME}/.gitconfig:/home/agent/.gitconfig:ro")
     [[ -d "${HOME}/.kube" ]] && extra_mounts+=(-v "${HOME}/.kube:/home/agent/.kube")
 
-    docker run -it --rm \
+    "$runtime" run -it --rm \
         --cap-drop=ALL \
         --security-opt no-new-privileges \
         --pids-limit 512 \
         --memory 4g \
         --user "$(id -u)":"$(id -g)" \
-        -v pi-config:/home/agent \
+        -e HOME=/home/agent \
+        -v "${HOME}/.pi:/home/agent/.pi" \
         -v "$PWD":/workspace:z \
         -w /workspace \
         --env-file "$envfile" \
