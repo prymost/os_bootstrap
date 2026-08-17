@@ -1,5 +1,6 @@
 # If you come from bash you might have to change your $PATH.
 # Modern Homebrew path handling for both Intel and Apple Silicon (macOS only)
+# set -euo pipefail
 if [[ "$OSTYPE" == "darwin"* ]]; then
     if [[ $(uname -m) == "arm64" ]]; then
         # Apple Silicon
@@ -232,9 +233,8 @@ pibox() {
         pibox:latest "$@"
 }
 
-
-
-
 # Machine-local overrides (never tracked in this repo)
-[ -f "$HOME/.zshrc.work" ] && source "$HOME/.zshrc.work"
+if [[ -f "$HOME/.zshrc.work" ]]; then
+    source "$HOME/.zshrc.work"
+fi
 
