@@ -7,6 +7,7 @@
   loop:
     - SyncFolder
     - Backup
+    - SynologyPhotos
   register: legacy_nas_stats
 
 - name: (Debian) Remove legacy NFS symlinks to prevent directory conflicts
@@ -46,13 +47,14 @@
 
 - name: (RedHat) Create symlinks to NAS NFS mount directories
   ansible.builtin.file:
-    src: "/home/boris/mnt/SharedLand/{{ item.src }}"
+    src: "{{ item.src }}"
     dest: "/home/boris/{{ item.dest }}"
     state: link
     force: yes
   loop:
-    - { src: "SyncFolder", dest: "SyncFolder" }
-    - { src: "Backup", dest: "Backup" }
+    - { src: "/home/boris/mnt/SharedLand/SyncFolder", dest: "SyncFolder" }
+    - { src: "/home/boris/mnt/SharedLand/Backup", dest: "Backup" }
+    - { src: "/home/boris/mnt/photo/Combined Photos", dest: "SynologyPhotos" }
   when: ansible_facts['os_family'] == 'RedHat'
 
 # ── 2. SECONDARY HARD DRIVE MOUNT ───────────────────────────────────────
