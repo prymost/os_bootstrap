@@ -24,9 +24,6 @@
   ansible.builtin.file:
     path: "/home/boris/{{ item.path }}"
     state: directory
-    owner: boris
-    group: boris
-    mode: "0755"
   loop: "{{ nas_mounts }}"
 
 - name: Configure NAS mounts in /etc/fstab with systemd automount

@@ -23,7 +23,6 @@ common_dev_packages:
 
 common_other_packages:
   - firefox
-  - vlc
   - discord
   - gamescope
   - plasma-systemmonitor
@@ -34,6 +33,7 @@ flatpak_packages:
   - org.prismlauncher.PrismLauncher
   - io.kinvolk.Headlamp
   - md.obsidian.Obsidian
+  - org.kde.haruna
 
 homebrew_packages:
   - kubectl
@@ -44,6 +44,7 @@ purged_os_packages:
   - kontact*
   - korganizer*
   - dragon
+  - vlc
 
 # BorgBackup Variables
 borg_repository: "/home/boris/Backup/borg-repo"
