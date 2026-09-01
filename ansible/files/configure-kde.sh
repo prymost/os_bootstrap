@@ -8,12 +8,7 @@ gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' || true
 kwriteconfig6 --file kglobalshortcutsrc --group "plasmashell" --key "activate application launcher" --delete || true
 
 # Set keyboard shortcut to launch krunner to Ctrl+Space
-kwriteconfig6 --file kglobalshortcutsrc --group "krunner" --key "_launch" "$(printf 'Ctrl+Space\tAlt+Space\tSearch')"
-kwriteconfig6 --file kglobalshortcutsrc --group "org.kde.krunner.desktop" --key "_launch" "$(printf 'Ctrl+Space\tAlt+Space\tSearch')"
-
-# Map PrintScreen to Spectacle rectangular region capture
-kwriteconfig6 --file kglobalshortcutsrc --group "org.kde.spectacle.desktop" --key "RectangularRegion" "$(printf 'Print\tnone\tCapture Rectangular Region')"
-kwriteconfig6 --file kglobalshortcutsrc --group "org.kde.spectacle.desktop" --key "_launch" "$(printf 'Meta+Print\tnone\tLaunch Spectacle')"
+kwriteconfig6 --file kglobalshortcutsrc --group "services" --group "org.kde.krunner.desktop" --key "_launch" "$(printf 'Search\tCtrl+Space')"
 
 # Configure Task Switcher to only show current screen
 kwriteconfig6 --file kwinrc --group "TabBox" --key "ShowOnlyCurrentScreen" "true"
