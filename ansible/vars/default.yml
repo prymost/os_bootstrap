@@ -1,5 +1,10 @@
 # Shared, cross-platform variables for both Pop!_OS and Fedora KDE
 
+# Target User & Base Paths
+target_user: "boris"
+target_home: "{{ ansible_user_dir | default('/home/' + target_user) }}"
+nas_backup_base_dir: "{{ target_home }}/Backup"
+
 common_cli_packages:
   - git
   - jq
@@ -9,6 +14,7 @@ common_cli_packages:
   - timeshift
   - keychain
   - borgbackup
+  - age
   - stow
   - flatpak
   - syncthing
@@ -37,6 +43,7 @@ flatpak_packages:
 
 homebrew_packages:
   - kubectl
+  - bitwarden-cli
 
 purged_os_packages:
   - libreoffice*
@@ -44,10 +51,9 @@ purged_os_packages:
   - kontact*
   - korganizer*
   - dragon
-  - vlc
 
 # BorgBackup Variables
-borg_repository: "/home/boris/Backup/borg-repo"
+borg_repository: "{{ nas_backup_base_dir }}/borg-repo"
 borg_backup_sources:
   - "/media/boris/DataDrive/Documents"
   - "/media/boris/DataDrive/all Nata"
@@ -62,3 +68,17 @@ hdd_uuid: "93e35c87-80a1-497c-85d0-a16b9448ea10"
 hdd_mount_point: "/media/boris/DataDrive"
 hdd_fstype: "auto"
 hdd_mount_opts: "nosuid,nodev,nofail,x-gvfs-show"
+
+# Secrets & Dotfiles Backup Variables (age + Bitwarden)
+age_public_key: "age15njthcvfc2jsdt37st0patwqfz3tlv7tz683wssmz7jfd5pwceqs85az0k"
+secrets_backup_dir: "{{ nas_backup_base_dir }}/secrets_backups"
+secrets_backup_max_keep: 5
+bitwarden_item_name: "os_setup_secrets_key"
+secrets_backup_targets:
+  - ".ssh"
+  - ".kube"
+  - ".gitconfig"
+  - ".gnupg"
+  - ".zsh_history"
+  - "ansible/vars/secrets.yml"
+

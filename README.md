@@ -122,3 +122,47 @@ After running the playbook:
 2. The playbook outputs your local Device ID.
 3. Access your NAS Syncthing console, add your local Device ID as a remote device, and share the configured Folder ID (`syncthing_folder_id`) with it to complete the pairing.
 
+---
+
+## 🔐 Secrets & Dotfiles Backup (age + Bitwarden)
+
+Sensitive dotfiles (`.ssh`, `.kube`, `.gitconfig`, `.gnupg`, `.zsh_history`) and repository secrets (`ansible/vars/secrets.yml`) are backed up automatically to the Synology NAS using **asymmetric `age` encryption**.
+
+### 1. Operations & Commands
+
+* **Initialize Keypair & Bitwarden Integration**:
+  ```bash
+  ./backup_restore.sh genkey
+  ```
+  Generates an `age` keypair, saves the private key as a Secure Note (`os_setup_secrets_key`) in Bitwarden via `bw` CLI, and configures the public key in `ansible/vars/default.yml`.
+
+* **Run Manual Backup**:
+  ```bash
+  ./backup_restore.sh backup
+  ```
+  *(Calculates SHA-256 hash across target files, skips redundant runs if unchanged, encrypts with the public key, and retains the 5 most recent snapshots on NAS).*
+
+* **Restore Secrets**:
+  ```bash
+  # Automatic via Bitwarden CLI:
+  ./backup_restore.sh restore --from-bw
+
+  # Or interactive prompt (Bitwarden login or manual key paste):
+  ./backup_restore.sh restore
+  ```
+
+* **Check Backup & Archive Status**:
+  ```bash
+  ./backup_restore.sh status
+  # Or run full health check:
+  ./check_status.sh
+  ```
+
+### 2. Systemd Automation
+
+Daily automated backups run unattended via a user systemd timer:
+* **Service**: `systemctl --user status secrets-backup.service`
+* **Timer**: `systemctl --user status secrets-backup.timer`
+* **Logs**: `journalctl --user -u secrets-backup.service -n 50 -f`
+
+

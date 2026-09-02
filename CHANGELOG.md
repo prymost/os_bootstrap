@@ -2,6 +2,15 @@ I will record changes to this file just so i don't need to look at commit histor
 
 # Changelog
 
+2026-09-02:
+- Implemented asymmetric `age`-encrypted secrets and dotfiles backup system via `backup_restore.sh`.
+- Integrated Bitwarden CLI (`bw`) for automated day-0 private key storage and retrieval (`os_setup_secrets_key` note).
+- Added unattended automated daily backups (`secrets-backup.service` and `secrets-backup.timer`) pushing encrypted archives to Synology NAS with SHA-256 change detection and 5-snapshot retention.
+- Added automated bootstrap recovery hook in `ansible/local.yml` (`ansible/tasks/restore_secrets.yml`) to restore `.ssh`, `.kube`, `.gitconfig`, `.gnupg`, and `secrets.yml` on fresh installs.
+- Updated `check_status.sh` to monitor secrets backup timer and report latest archive status.
+- Added `age` to `common_cli_packages` and `bitwarden-cli` to `homebrew_packages`.
+- Updated `AGENTS.md` and `README.md` with complete documentation on secrets management.
+
 2026-08-08:
 - Added `pibox` Docker sandbox setup and shell integration for running isolated `pi` sessions.
 

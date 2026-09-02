@@ -3,26 +3,35 @@
 
 - name: Ensure user local bin directory exists
   ansible.builtin.file:
-    path: /home/boris/.local/bin
+    path: "{{ target_home }}/.local/bin"
     state: directory
-    owner: boris
-    group: boris
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
     mode: "0755"
 
 - name: Download and install custom psort tool
   ansible.builtin.get_url:
     url: https://github.com/prymost/psort/releases/latest/download/psort-linux
-    dest: /home/boris/.local/bin/psort
+    dest: "{{ target_home }}/.local/bin/psort"
     mode: "0755"
-    owner: boris
-    group: boris
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+
+- name: Create symlink for backup_restore tool in user bin
+  ansible.builtin.file:
+    src: "{{ playbook_dir | dirname }}/backup_restore.sh"
+    dest: "{{ target_home }}/.local/bin/backup-secrets.sh"
+    state: link
+    force: yes
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
 
 - name: Ensure BorgBackup repository is initialized
   ansible.builtin.command:
     cmd: "borg init --encryption=none {{ borg_repository }}"
     creates: "{{ borg_repository }}/config"
   become: yes
-  become_user: boris
+  become_user: "{{ target_user }}"
   register: borg_init
   failed_when: false
 
@@ -31,22 +40,22 @@
 - name: Create BorgBackup execution script
   ansible.builtin.template:
     src: templates/borg-backup.sh.j2
-    dest: /home/boris/.local/bin/borg-backup.sh
-    owner: boris
-    group: boris
+    dest: "{{ target_home }}/.local/bin/borg-backup.sh"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
     mode: "0755"
 
 - name: Ensure user systemd config directory exists
   ansible.builtin.file:
-    path: /home/boris/.config/systemd/user
+    path: "{{ target_home }}/.config/systemd/user"
     state: directory
-    owner: boris
-    group: boris
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
     mode: "0755"
 
 - name: Create BorgBackup systemd service unit
   ansible.builtin.copy:
-    dest: /home/boris/.config/systemd/user/borg-backup.service
+    dest: "{{ target_home }}/.config/systemd/user/borg-backup.service"
     content: |
       [Unit]
       Description=Daily BorgBackup task to Synology NAS
@@ -56,14 +65,14 @@
       [Service]
       Type=oneshot
       ExecStartPre=/bin/sh -c 'until ping -c1 -W1 homecloud.local >/dev/null 2>&1; do sleep 5; done'
-      ExecStart=/usr/bin/systemd-inhibit --who="borg-backup" --why="Prevent interrupting daily backup to Synology NAS" --mode=block /home/boris/.local/bin/borg-backup.sh
-    owner: boris
-    group: boris
+      ExecStart=/usr/bin/systemd-inhibit --who="borg-backup" --why="Prevent interrupting daily backup to Synology NAS" --mode=block {{ target_home }}/.local/bin/borg-backup.sh
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
     mode: "0644"
 
 - name: Create BorgBackup systemd timer unit
   ansible.builtin.copy:
-    dest: /home/boris/.config/systemd/user/borg-backup.timer
+    dest: "{{ target_home }}/.config/systemd/user/borg-backup.timer"
     content: |
       [Unit]
       Description=Run BorgBackup daily and persist across shutdowns
@@ -74,8 +83,8 @@
 
       [Install]
       WantedBy=timers.target
-    owner: boris
-    group: boris
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
     mode: "0644"
 
 - name: Enable and start BorgBackup user timer
@@ -86,18 +95,65 @@
     state: started
     daemon_reload: yes
   become: yes
-  become_user: boris
+  become_user: "{{ target_user }}"
 
-- name: Create systemd sleep hook to stop BorgBackup before suspend
+# ── 3. SECRETS BACKUP SYSTEMD CONFIGURATION ──────────────────────────────
+
+- name: Create Secrets Backup systemd service unit
+  ansible.builtin.copy:
+    dest: "{{ target_home }}/.config/systemd/user/secrets-backup.service"
+    content: |
+      [Unit]
+      Description=Daily Secrets & Dotfiles age-encrypted backup to Synology NAS
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      Type=oneshot
+      ExecStartPre=/bin/sh -c 'until ping -c1 -W1 homecloud.local >/dev/null 2>&1; do sleep 5; done'
+      ExecStart=/usr/bin/systemd-inhibit --who="secrets-backup" --why="Prevent interrupting secrets backup to Synology NAS" --mode=block {{ playbook_dir | dirname }}/backup_restore.sh backup
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0644"
+
+- name: Create Secrets Backup systemd timer unit
+  ansible.builtin.copy:
+    dest: "{{ target_home }}/.config/systemd/user/secrets-backup.timer"
+    content: |
+      [Unit]
+      Description=Run Secrets & Dotfiles Backup daily and persist across shutdowns
+
+      [Timer]
+      OnCalendar=daily
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0644"
+
+- name: Enable and start Secrets Backup user timer
+  ansible.builtin.systemd:
+    name: secrets-backup.timer
+    scope: user
+    enabled: yes
+    state: started
+    daemon_reload: yes
+  become: yes
+  become_user: "{{ target_user }}"
+
+- name: Create systemd sleep hook to stop backups before suspend
   ansible.builtin.copy:
     dest: /usr/lib/systemd/system-sleep/borg-backup-suspend
     content: |
       #!/bin/sh
       # Prevent interrupting running backup when the PC goes to sleep
       if [ "$1" = "pre" ]; then
-          runuser -l boris -c "systemctl --user stop borg-backup.service" || true
+          runuser -l {{ target_user }} -c "systemctl --user stop borg-backup.service secrets-backup.service" || true
       fi
     owner: root
     group: root
     mode: "0755"
+
 

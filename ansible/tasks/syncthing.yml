@@ -35,17 +35,17 @@
 
 # ── 2. SYSTEM SERVICE CONFIGURATION ───────────────────────────────────────
 
-- name: Enable lingering for user boris to run user systemd services
-  ansible.builtin.command: loginctl enable-linger boris
+- name: Enable lingering for user to run user systemd services
+  ansible.builtin.command: "loginctl enable-linger {{ target_user }}"
   args:
-    creates: /var/lib/systemd/linger/boris
+    creates: "/var/lib/systemd/linger/{{ target_user }}"
 
 - name: Ensure target sync directory exists
   ansible.builtin.file:
     path: "{{ syncthing_local_path }}"
     state: directory
-    owner: boris
-    group: boris
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
     mode: "0700"
 
 - name: Enable and start Syncthing user service
@@ -55,7 +55,7 @@
     state: started
     scope: user
   become: yes
-  become_user: boris
+  become_user: "{{ target_user }}"
 
 - name: Determine Syncthing configuration path
   ansible.builtin.shell:
@@ -63,7 +63,7 @@
   register: syncthing_config_path_raw
   changed_when: false
   become: yes
-  become_user: boris
+  become_user: "{{ target_user }}"
 
 - name: Set Syncthing config path fact
   ansible.builtin.set_fact:
@@ -80,7 +80,7 @@
   register: local_device_id
   changed_when: false
   become: yes
-  become_user: boris
+  become_user: "{{ target_user }}"
 
 # ── 3. CONFIGURATION AUTOMATION ───────────────────────────────────────────
 
@@ -97,7 +97,7 @@
   register: syncthing_config_result
   changed_when: "syncthing_config_result.stdout.strip() == 'CHANGED'"
   become: yes
-  become_user: boris
+  become_user: "{{ target_user }}"
 
 - name: Restart Syncthing user service if config changed
   ansible.builtin.systemd:
@@ -105,9 +105,10 @@
     state: restarted
     scope: user
   become: yes
-  become_user: boris
+  become_user: "{{ target_user }}"
   when: syncthing_config_result.changed
 
 - name: Output local device ID for manual pairing on NAS
   ansible.builtin.debug:
     msg: "Your local Syncthing Device ID is: {{ local_device_id.stdout.strip() }}. Make sure to add this ID on your NAS Syncthing console and share the folder '{{ syncthing_folder_id }}' with it."
+

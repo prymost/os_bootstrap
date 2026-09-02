@@ -91,6 +91,18 @@ check_service "update" "user" "update.timer"
 # 3. Borg Backups (User-level)
 check_service "borg-backup" "user" "borg-backup.timer"
 
+# 4. Secrets & Dotfiles Backup (User-level)
+check_service "secrets-backup" "user" "secrets-backup.timer"
+
+# Inspect latest secrets backup status from backup_restore.sh
+if [ -f "./backup_restore.sh" ]; then
+    echo -e "${BOLD}========================================================================${NC}"
+    echo -e "${BOLD}🔐 Secrets Backup Storage Summary${NC}"
+    echo -e "${BOLD}========================================================================${NC}"
+    ./backup_restore.sh status || true
+    echo
+fi
+
 # Print high-level overview summary
 echo -e "${BOLD}========================================================================${NC}"
 if [ $ANY_FAILED -eq 0 ]; then

@@ -41,6 +41,8 @@ PowerShell -ExecutionPolicy Bypass -File windows/bootstrap-windows11.ps1
 
 *   **Declarative Infrastructure as Code (Linux & macOS)**: The workstation setup is orchestrated by `ansible/local.yml`. Specific tasks are modularized under `ansible/tasks/`, templates in `ansible/templates/`, static files/scripts in `ansible/files/`, and OS variables in `ansible/vars/`.
 *   **Idempotency**: The Ansible playbook and shell scripts are designed to be run multiple times safely without side effects.
-*   **Shared Configuration**: The `shared` directory contains shared templates (e.g. `.zshrc`, `kitty.conf`, `.vimrc`) linked via GNU Stow.
-*   **Secrets & Credentials**: Private workstation credentials (such as Syncthing pairing config) are stored in `ansible/vars/secrets.yml` which is gitignored to avoid leaking credentials. Playbook validation checks enforce its structure.
+*   **Secrets & Credentials**: Private workstation credentials (such as Syncthing pairing config `ansible/vars/secrets.yml`, `.ssh`, `.kube`, `.gnupg`, etc.) are protected using asymmetric `age` encryption via [backup_restore.sh](file:///home/boris/Workspace/os_bootstrap/backup_restore.sh).
+    *   **Unattended Daily Backups**: `secrets-backup.timer` runs daily, uses the public `age` key to encrypt target dotfiles/secrets, verifies SHA-256 content hashes to avoid redundant snapshots, and pushes encrypted archives to the Synology NAS (`secrets_backup_dir`).
+    *   **Day-0 Bootstrap Recovery**: On fresh OS installations, Ansible mounts the NAS, identifies missing secrets, and launches interactive decryption via Bitwarden CLI (`os_setup_secrets_key` note) or manual key entry before continuing with provisioning.
+
 

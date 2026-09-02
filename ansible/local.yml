@@ -12,10 +12,12 @@
     - name: Gather facts
       ansible.builtin.setup:
       become: no
+      tags: always
 
     - name: End play if running on macOS
       ansible.builtin.meta: end_play
       when: ansible_facts['os_family'] == 'Darwin'
+      tags: always
 
   tasks:
     - name: Load OS-specific variables
@@ -42,6 +44,9 @@
     - name: Configure storage and mount points
       ansible.builtin.include_tasks: tasks/mounts.yml
 
+    - name: Restore encrypted secrets from NAS if missing
+      ansible.builtin.include_tasks: tasks/restore_secrets.yml
+
     - name: Configure Syncthing synchronization
       ansible.builtin.include_tasks: tasks/syncthing.yml
 
@@ -63,6 +68,7 @@
     - name: End play if not running on macOS
       ansible.builtin.meta: end_play
       when: ansible_facts['os_family'] != 'Darwin'
+      tags: always
 
   tasks:
     - name: Load OS-specific variables
