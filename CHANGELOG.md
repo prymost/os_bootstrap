@@ -2,6 +2,9 @@ I will record changes to this file just so i don't need to look at commit histor
 
 # Changelog
 
+2026-09-07:
+- Configured KDE Plasma panel position to be at the top instead of the bottom in `ansible/files/configure-kde.sh`.
+
 2026-09-02:
 - Implemented asymmetric `age`-encrypted secrets and dotfiles backup system via `backup_restore.sh`.
 - Integrated Bitwarden CLI (`bw`) for automated day-0 private key storage and retrieval (`os_setup_secrets_key` note).

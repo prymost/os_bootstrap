@@ -30,6 +30,11 @@ if command -v kscreen-doctor >/dev/null 2>&1; then
     fi
 fi
 
+# Move panel to the top
+if command -v qdbus-qt6 >/dev/null 2>&1; then
+    qdbus-qt6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript 'panels().forEach(p => p.location = "top");' || true
+fi
+
 # Reload configs dynamically
 export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$(id -u)/bus"
 dbus-send --session --dest=org.kde.keyboard --type=method_call /Layouts org.kde.KeyboardLayouts.reloadConfig || true
