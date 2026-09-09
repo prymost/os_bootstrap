@@ -1,0 +1,69 @@
+---
+# ── NAS SMB AUTOMOUNT (LaunchAgent + mount_smbfs, keychain auth) ────────────
+# Mounts the NAS share into the home directory at login, on network changes
+# (WatchPaths) and every 5 minutes as retry. Password lives only in the
+# login keychain; on fresh installs the script prompts once via a native
+# dialog and stores it.
+
+- name: Ensure NAS mount point directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/{{ nas_mount_path }}"
+    state: directory
+    mode: "0755"
+
+- name: Ensure Application Support directory for deployed scripts exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/Library/Application Support/os_bootstrap"
+    state: directory
+    mode: "0755"
+
+- name: Deploy NAS mount script
+  ansible.builtin.copy:
+    src: "{{ playbook_dir | dirname }}/mac/mount_nas.sh"
+    dest: "{{ nas_mount_script_path }}"
+    mode: "0755"
+  vars:
+    nas_mount_script_path: "{{ ansible_facts.env.HOME }}/Library/Application Support/os_bootstrap/mount_nas.sh"
+  register: nas_mount_script
+
+- name: Ensure LaunchAgents directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents"
+    state: directory
+    mode: "0755"
+
+- name: Deploy NAS mount LaunchAgent plist
+  ansible.builtin.template:
+    src: "{{ playbook_dir | dirname }}/mac/configs/com.user.nas.mount.plist"
+    dest: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.nas.mount.plist"
+    mode: "0644"
+  vars:
+    SCRIPT_PATH: "{{ ansible_facts.env.HOME }}/Library/Application Support/os_bootstrap/mount_nas.sh"
+    LOG_PATH: "{{ ansible_facts.env.HOME }}/Library/Logs/nas_mount.log"
+    NAS_HOST: "{{ nas_host }}"
+    NAS_USER: "{{ nas_user }}"
+    NAS_SHARE: "{{ nas_share }}"
+    MOUNT_POINT: "{{ ansible_facts.env.HOME }}/{{ nas_mount_path }}"
+  register: nas_mount_plist
+
+- name: Get current user UID
+  ansible.builtin.command: id -u
+  register: nas_mount_user_uid
+  changed_when: false
+
+- name: Unload previous NAS mount LaunchAgent if plist changed
+  ansible.builtin.shell:
+    cmd: launchctl bootout "gui/{{ nas_mount_user_uid.stdout.strip() }}" "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.nas.mount.plist" 2>/dev/null || true
+  when: nas_mount_plist.changed
+  changed_when: false
+
+- name: Load NAS mount LaunchAgent
+  ansible.builtin.shell:
+    cmd: launchctl bootstrap "gui/{{ nas_mount_user_uid.stdout.strip() }}" "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.nas.mount.plist"
+  when: nas_mount_plist.changed or nas_mount_script.changed
+
+- name: Trigger NAS mount agent once to verify it works
+  ansible.builtin.shell:
+    cmd: launchctl kickstart "gui/{{ nas_mount_user_uid.stdout.strip() }}/com.user.nas.mount"
+  when: nas_mount_plist.changed or nas_mount_script.changed
+  changed_when: false

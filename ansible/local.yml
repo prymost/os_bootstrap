@@ -86,5 +86,8 @@
     - name: Configure macOS settings
       ansible.builtin.include_tasks: tasks/mac_settings.yml
 
+    - name: Configure NAS automount with network rejoin handling
+      ansible.builtin.include_tasks: tasks/mac_mounts.yml
+
     - name: Configure macOS daily update automation
       ansible.builtin.include_tasks: tasks/mac_updates.yml

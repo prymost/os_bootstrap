@@ -28,3 +28,10 @@ darwin_cask_packages:
   - rectangle
   - iterm2
   - bruno
+
+# NAS SMB automount (LaunchAgent runs mac/mount_nas.sh, keychain auth).
+# Host, user and share are already public in the Linux NAS mount configs.
+nas_host: "HomeCloud"
+nas_share: "SharedLand"
+nas_user: "Boris"
+nas_mount_path: "NAS"

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.user.nas.mount</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>{{SCRIPT_PATH}}</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StartInterval</key>
+    <integer>300</integer>
+    <key>WatchPaths</key>
+    <array>
+        <string>/private/var/run/resolv.conf</string>
+        <string>/Library/Preferences/SystemConfiguration/com.apple.network.identification.plist</string>
+    </array>
+    <key>StandardOutPath</key>
+    <string>{{LOG_PATH}}</string>
+    <key>StandardErrorPath</key>
+    <string>{{LOG_PATH}}</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>NAS_HOST</key>
+        <string>{{NAS_HOST}}</string>
+        <key>NAS_USER</key>
+        <string>{{NAS_USER}}</string>
+        <key>NAS_SHARE</key>
+        <string>{{NAS_SHARE}}</string>
+        <key>MOUNT_POINT</key>
+        <string>{{MOUNT_POINT}}</string>
+    </dict>
+</dict>
+</plist>

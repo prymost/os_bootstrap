@@ -20,7 +20,25 @@ My personal scripts and Ansible configurations for setting up and maintaining a 
 - **`check_compatibility.sh`** - Validates system compatibility before setup.
 - **`setup/configure_osx.sh`** - Configures macOS system preferences (called by Ansible).
 - **`setup/restore.sh`** - Restores backed-up configuration files (optional/manual).
+- **`mount_nas.sh`** - Keeps the NAS share mounted (see below).
 - **`ansible/local.yml`** - The Ansible playbook that provisions packages, dotfiles, settings, and updates.
+
+## 🗄️ NAS Auto-Mount
+
+A LaunchAgent (`com.user.nas.mount`, deployed by `ansible/tasks/mac_mounts.yml`) runs `mount_nas.sh` to keep the NAS share mounted at `~/NAS`:
+
+- **At login** (`RunAtLoad`) and **on every network change** (`WatchPaths`), so the share remounts automatically when the Mac rejoins the home network.
+- Every 5 minutes (`StartInterval`) as a retry for failed mounts and sleep/wake gaps.
+- If the NAS is unreachable (e.g. laptop taken elsewhere), a stale mount is force-unmounted so the next trigger can remount cleanly.
+- **Credentials** live only in the login keychain. On a fresh install the script shows a native password dialog once and stores the password with an ACL trusting `security` and `mount_smbfs`. The password is never written to disk or logged. It is passed to `mount_smbfs` percent-encoded (via `jq`, piped on stdin) which briefly exposes it in the process list while mounting.
+- Configuration (host, share, user, mount path) lives in `ansible/vars/Darwin.yml`.
+- Log: `~/Library/Logs/nas_mount.log`.
+
+To trigger a remount manually:
+
+```bash
+launchctl kickstart "gui/$(id -u)/com.user.nas.mount"
+```
 
 ## 💻 Compatibility
 
