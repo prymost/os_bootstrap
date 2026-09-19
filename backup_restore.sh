@@ -83,6 +83,19 @@ get_config_targets() {
     fi
 }
 
+# Helper to read required targets array from ansible/vars/default.yml
+get_config_required_targets() {
+    if [[ -f "$DEFAULT_VARS_FILE" ]] && grep -q "^secrets_backup_required_targets:" "$DEFAULT_VARS_FILE"; then
+        sed -n '/^secrets_backup_required_targets:/,/^[a-zA-Z_]/p' "$DEFAULT_VARS_FILE" \
+            | grep -E '^[[:space:]]*-[[:space:]]*' \
+            | sed -E 's/^[[:space:]]*-[[:space:]]*[\"'"'"']?([^\"'"'"']+)[\"'"'"']?/\1/' \
+            | xargs -n1
+    else
+        echo "ansible/vars/secrets.yml"
+        echo ".ssh"
+    fi
+}
+
 # Configuration settings (environment variables take precedence)
 AGE_PUBLIC_KEY="${AGE_PUBLIC_KEY:-$(get_config_var "age_public_key" "")}"
 BACKUP_DIR="${BACKUP_DIR:-$(get_config_var "secrets_backup_dir" "${HOME_DIR}/Backup/secrets_backups")}"
@@ -95,16 +108,25 @@ while IFS= read -r line; do
     [[ -n "$line" ]] && TARGETS+=("$line")
 done < <(get_config_targets)
 
+# Populate required targets (guards against degraded backups)
+REQUIRED_TARGETS=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] && REQUIRED_TARGETS+=("$line")
+done < <(get_config_required_targets)
+
 show_usage() {
     cat << EOF
 ${BOLD}Usage:${NC} $0 <command> [options]
 
 ${BOLD}Commands:${NC}
-  ${BLUE}backup${NC}   [dir]              Run secrets backup (unattended, change-detected)
-  ${BLUE}restore${NC}  [archive] [options] Restore secrets from backup archive
+  ${BLUE}backup${NC}   [dir] [--force]    Run secrets backup (unattended, change-detected)
+  ${BLUE}restore${NC}  [archive] [options] Restore secrets (interactive snapshot menu if archive omitted)
   ${BLUE}genkey${NC}                      Generate age keypair & save private key to Bitwarden
   ${BLUE}status${NC}                      Show backup configuration and latest backup info
   ${BLUE}help${NC}                        Show this help message
+
+${BOLD}Backup Options:${NC}
+  --force                 Proceed with backup even if required targets are missing
 
 ${BOLD}Restore Options:${NC}
   --from-bw               Fetch age private key automatically via Bitwarden CLI (bw)
@@ -114,8 +136,9 @@ ${BOLD}Restore Options:${NC}
 ${BOLD}Examples:${NC}
   $0 genkey
   $0 backup
-  $0 restore --from-bw
+  $0 backup --force
   $0 restore
+  $0 restore --from-bw
   AGE_SECRET_KEY="AGE-SECRET-KEY-..." $0 restore
 EOF
 }
@@ -235,12 +258,70 @@ cmd_backup() {
     check_tool "age" "Install age via: sudo dnf install age (or apt install age / brew install age)" || exit 1
     check_tool "tar" "tar utility is required" || exit 1
 
-    local dest_dir="${1:-$BACKUP_DIR}"
+    local dest_dir=""
+    local force=false
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --force|-f)
+                force=true
+                shift
+                ;;
+            -*)
+                log_err "Unknown backup option: $1"
+                show_usage
+                exit 1
+                ;;
+            *)
+                if [[ -z "$dest_dir" ]]; then
+                    dest_dir="$1"
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    dest_dir="${dest_dir:-$BACKUP_DIR}"
 
     if [[ -z "$AGE_PUBLIC_KEY" ]]; then
         log_err "No age public key configured in ${DEFAULT_VARS_FILE} or AGE_PUBLIC_KEY environment variable."
         log_err "Run '$0 genkey' first to generate and configure your keypair."
         exit 1
+    fi
+
+    # Pre-flight check: ensure required targets exist before touching NAS archives
+    local missing_required=()
+    for req in "${REQUIRED_TARGETS[@]}"; do
+        local req_path
+        if [[ "$req" =~ ^\. ]]; then
+            req_path="${HOME_DIR}/${req}"
+        elif [[ "$req" =~ ^/ ]]; then
+            req_path="${req}"
+        else
+            req_path="${REPO_ROOT}/${req}"
+        fi
+
+        if [[ ! -e "$req_path" && ! -L "$req_path" ]]; then
+            missing_required+=("${req} (expected at ${req_path})")
+        fi
+    done
+
+    if [[ ${#missing_required[@]} -gt 0 ]]; then
+        if [[ "$force" == "true" ]]; then
+            log_warn "Required backup target(s) missing, but continuing due to --force flag:"
+            for m in "${missing_required[@]}"; do
+                log_warn "  - $m"
+            done
+        else
+            echo
+            log_err "CRITICAL: Required secret target(s) missing from disk:"
+            for m in "${missing_required[@]}"; do
+                log_err "  - $m"
+            done
+            log_err "Aborting backup to prevent overwriting 'secrets-latest' with degraded data."
+            log_err "Pass '--force' to proceed anyway if this omission is intentional."
+            exit 1
+        fi
     fi
 
     # Check that backup destination directory exists (triggers automount if applicable)
@@ -397,9 +478,42 @@ cmd_restore() {
         esac
     done
 
-    # Default to latest archive in backup dir
+    # Resolve archive to restore (interactive selection if multiple snapshots exist and stdin is a TTY)
     if [[ -z "$archive_file" ]]; then
-        archive_file="${custom_dir}/secrets-latest.tar.gz.age"
+        local latest_file="${custom_dir}/secrets-latest.tar.gz.age"
+        local snapshots=()
+        if [[ -d "$custom_dir" ]]; then
+            while IFS= read -r f; do
+                [[ -n "$f" ]] && snapshots+=("$f")
+            done < <(find "$custom_dir" -maxdepth 1 -name "secrets-[0-9]*.tar.gz.age" -type f 2>/dev/null | sort -r)
+        fi
+
+        if [[ -t 0 && ${#snapshots[@]} -gt 0 ]]; then
+            echo -e "${BOLD}========================================================================${NC}"
+            echo -e "${BOLD}📦 Backup Snapshot Selection (${custom_dir})${NC}"
+            echo -e "${BOLD}========================================================================${NC}"
+            echo -e "  [1] ${GREEN}$(basename "$latest_file")${NC} (Latest Pointer - $(du -h "$latest_file" 2>/dev/null | awk '{print $1}' || echo '?')) ${BOLD}[Default]${NC}"
+            local idx=2
+            for s in "${snapshots[@]}"; do
+                local s_time
+                s_time=$(stat -c '%y' "$s" 2>/dev/null || stat -f '%Sm' "$s" 2>/dev/null || echo "")
+                echo -e "  [${idx}] $(basename "$s") ($(du -h "$s" 2>/dev/null | awk '{print $1}' || echo '?'), ${s_time:0:19})"
+                idx=$((idx + 1))
+            done
+            echo
+            read -r -p "Select snapshot to restore [1-$((idx - 1))] (default: 1): " choice
+            choice="${choice:-1}"
+            if [[ "$choice" == "1" ]]; then
+                archive_file="$latest_file"
+            elif [[ "$choice" =~ ^[0-9]+$ ]] && [[ "$choice" -ge 2 && "$choice" -lt "$idx" ]]; then
+                archive_file="${snapshots[$((choice - 2))]}"
+            else
+                log_warn "Invalid selection '$choice'. Defaulting to latest snapshot."
+                archive_file="$latest_file"
+            fi
+        else
+            archive_file="$latest_file"
+        fi
     fi
 
     # Trigger automount / verify existence
@@ -567,6 +681,40 @@ cmd_restore() {
         restorecon -R "${HOME_DIR}/.ssh" "${HOME_DIR}/.gnupg" "${HOME_DIR}/.kube" 2>/dev/null || true
     fi
 
+    # Post-restore verification of required targets
+    local missing_critical=()
+    for req in "${REQUIRED_TARGETS[@]}"; do
+        local check_path
+        if [[ "$req" =~ ^\. ]]; then
+            check_path="${HOME_DIR}/${req}"
+        elif [[ "$req" =~ ^/ ]]; then
+            check_path="${req}"
+        else
+            check_path="${REPO_ROOT}/${req}"
+        fi
+
+        if [[ ! -e "$check_path" && ! -L "$check_path" ]]; then
+            missing_critical+=("${req} (${check_path})")
+        fi
+    done
+
+    if [[ ${#missing_critical[@]} -gt 0 ]]; then
+        echo
+        echo -e "${YELLOW}========================================================================${NC}"
+        echo -e "${YELLOW}⚠️  WARNING: Critical Secret(s) Missing After Restore!${NC}"
+        echo -e "${YELLOW}========================================================================${NC}"
+        echo -e "The restored archive did not contain the following expected target(s):"
+        for mc in "${missing_critical[@]}"; do
+            echo -e "  - ${BOLD}${RED}${mc}${NC}"
+        done
+        echo
+        echo -e "Consider restoring from an earlier snapshot using:"
+        echo -e "  ${BLUE}$0 restore <archive_file>${NC}"
+        echo -e "${YELLOW}========================================================================${NC}"
+    else
+        log_success "All required secret targets verified present on disk."
+    fi
+
     log_success "All secrets successfully restored!"
 }
 
@@ -584,6 +732,11 @@ cmd_status() {
     echo -e "${BOLD}Targets Configured:${NC}"
     for t in "${TARGETS[@]}"; do
         echo "  - $t"
+    done
+    echo
+    echo -e "${BOLD}Required Targets (Must exist for backup to proceed):${NC}"
+    for r in "${REQUIRED_TARGETS[@]}"; do
+        echo -e "  - ${GREEN}${r}${NC}"
     done
     echo
 

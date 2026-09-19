@@ -107,6 +107,7 @@
       Description=Daily Secrets & Dotfiles age-encrypted backup to Synology NAS
       After=network-online.target
       Wants=network-online.target
+      ConditionPathExists={{ playbook_dir | dirname }}/ansible/vars/secrets.yml
 
       [Service]
       Type=oneshot

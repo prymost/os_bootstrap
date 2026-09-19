@@ -2,6 +2,13 @@ I will record changes to this file just so i don't need to look at commit histor
 
 # Changelog
 
+2026-09-18:
+- Restored active Syncthing pairing credentials into gitignored `ansible/vars/secrets.yml` from running config.
+- Added anti-degradation safeguards to `backup_restore.sh` via `secrets_backup_required_targets` in `ansible/vars/default.yml` (`ansible/vars/secrets.yml`, `.ssh`), preventing unattended runs from creating hollow snapshots or overwriting `secrets-latest.tar.gz.age` when critical secrets are absent.
+- Added `--force` flag to `backup_restore.sh backup` to optionally allow overriding the required targets check.
+- Added `ConditionPathExists` for `secrets.yml` to `secrets-backup.service` in `ansible/tasks/backup.yml` and active user systemd unit to prevent automated backup execution on unprovisioned/day-0 systems.
+- Added interactive snapshot selection menu and post-restore target verification to `backup_restore.sh restore`.
+
 2026-09-07:
 - Configured KDE Plasma panel position to be at the top instead of the bottom in `ansible/files/configure-kde.sh`.
 

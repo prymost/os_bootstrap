@@ -81,4 +81,8 @@ secrets_backup_targets:
   - ".gnupg"
   - ".zsh_history"
   - "ansible/vars/secrets.yml"
+secrets_backup_required_targets:
+  - "ansible/vars/secrets.yml"
+  - ".ssh"
+
 
