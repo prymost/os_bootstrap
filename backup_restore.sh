@@ -715,6 +715,19 @@ cmd_restore() {
         log_success "All required secret targets verified present on disk."
     fi
 
+    # Switch os_bootstrap repository remote from HTTPS to SSH if currently using HTTPS
+    if command -v git &>/dev/null && git -C "${REPO_ROOT}" rev-parse --is-inside-work-tree &>/dev/null; then
+        local current_origin
+        current_origin="$(git -C "${REPO_ROOT}" remote get-url origin 2>/dev/null || true)"
+        if [[ "$current_origin" =~ ^https?://([^@]+@)?github\.com/([^/]+)/([^/]+)$ ]]; then
+            local org="${BASH_REMATCH[2]}"
+            local repo="${BASH_REMATCH[3]%.git}"
+            local ssh_url="git@github.com:${org}/${repo}.git"
+            git -C "${REPO_ROOT}" remote set-url origin "$ssh_url"
+            log_success "Switched os_bootstrap git remote from HTTPS to SSH: ${ssh_url}"
+        fi
+    fi
+
     log_success "All secrets successfully restored!"
 }
 
