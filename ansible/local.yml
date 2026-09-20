@@ -56,6 +56,10 @@
     - name: Configure backup automation
       ansible.builtin.include_tasks: tasks/backup.yml
 
+    - name: Provision workspace repositories
+      ansible.builtin.include_tasks: tasks/workspace.yml
+      tags: workspace
+
 - name: Workstation Declarative Provisioning Playbook (macOS)
   hosts: localhost
   connection: local

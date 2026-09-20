@@ -2,6 +2,10 @@ I will record changes to this file just so i don't need to look at commit histor
 
 # Changelog
 
+2026-09-19:
+- Added automated workspace repository cloning
+
+
 2026-09-18:
 - Restored active Syncthing pairing credentials into gitignored `ansible/vars/secrets.yml` from running config.
 - Added anti-degradation safeguards to `backup_restore.sh` via `secrets_backup_required_targets` in `ansible/vars/default.yml` (`ansible/vars/secrets.yml`, `.ssh`), preventing unattended runs from creating hollow snapshots or overwriting `secrets-latest.tar.gz.age` when critical secrets are absent.

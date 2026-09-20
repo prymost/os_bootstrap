@@ -85,4 +85,19 @@ secrets_backup_required_targets:
   - "ansible/vars/secrets.yml"
   - ".ssh"
 
+# Workspace & Repository Provisioning
+workspace_dir: "{{ target_home }}/Workspace"
+workspace_repositories:
+  - name: homelab
+    repo: "git@github.com:prymost/homelab.git"
+    dest: "{{ workspace_dir }}/homelab"
+  - name: public_notes
+    repo: "git@github.com:prymost/public_notes.git"
+    dest: "{{ workspace_dir }}/public_notes"
+  - name: ai_stuff
+    repo: "git@github.com:prymost/ai_stuff.git"
+    dest: "{{ workspace_dir }}/ai_stuff"
+
+
+
 

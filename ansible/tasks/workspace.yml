@@ -1,0 +1,24 @@
+---
+# ── WORKSPACE REPOSITORIES PROVISIONING ──────────────────────────────────────
+
+- name: Ensure Workspace directory exists
+  ansible.builtin.file:
+    path: "{{ workspace_dir }}"
+    state: directory
+    owner: "{{ target_user if ansible_facts['os_family'] != 'Darwin' else omit }}"
+    group: "{{ target_user if ansible_facts['os_family'] != 'Darwin' else omit }}"
+    mode: "0755"
+  become: "{{ true if ansible_facts['os_family'] != 'Darwin' else false }}"
+  become_user: "{{ target_user if ansible_facts['os_family'] != 'Darwin' else omit }}"
+  tags: workspace
+
+- name: Clone workspace repositories
+  ansible.builtin.git:
+    repo: "{{ item.repo }}"
+    dest: "{{ item.dest }}"
+    update: no
+    accept_newhostkey: yes
+  loop: "{{ workspace_repositories }}"
+  become: "{{ true if ansible_facts['os_family'] != 'Darwin' else false }}"
+  become_user: "{{ target_user if ansible_facts['os_family'] != 'Darwin' else omit }}"
+  tags: workspace
