@@ -53,6 +53,86 @@
   become_user: boris
   when: not antigravity_check.stat.exists
 
+# ── Handy Speech-to-Text Setup ──────────────────────────────────────────
+# NOTE 1: Wayland Global Shortcut
+# Under Wayland compositors (like KDE Plasma), background applications are
+# restricted from globally capturing arbitrary keystrokes. Handy supports
+# CLI remote-control flags (`handy --toggle-transcription`).
+# To trigger Handy globally from anywhere on KDE Plasma:
+#   Go to: System Settings -> Shortcuts -> Add New -> Command
+#   Command: handy --toggle-transcription
+#   Trigger: Set your preferred shortcut (e.g., Meta+Space or Ctrl+Alt+Space).
+#
+# NOTE 2: GTK Layer Shell Overlay & Workarounds
+# Handy uses `gtk-layer-shell` for its floating recording overlay pill. On some
+# compositors (notably KDE Plasma under Wayland), gtk-layer-shell may glitch or
+# crash. If this happens, set `HANDY_NO_GTK_LAYER_SHELL=1` to fall back to an
+# always-on-top window. If WebKit fails to render, set
+# `WEBKIT_DISABLE_DMABUF_RENDERER=1`.
+
+- name: Check if Handy is installed
+  ansible.builtin.command: command -v handy
+  register: handy_check
+  failed_when: false
+  changed_when: false
+  tags: [packages, handy]
+
+- name: Get latest Handy release metadata from GitHub
+  ansible.builtin.uri:
+    url: https://api.github.com/repos/cjpais/Handy/releases/latest
+    return_content: yes
+    headers:
+      Accept: "application/vnd.github.v3+json"
+  register: handy_release
+  when: handy_check.rc != 0
+  tags: [packages, handy]
+
+- name: Install Handy (.rpm on Fedora / RedHat)
+  ansible.builtin.dnf:
+    name: "{{ (handy_release.json.assets | selectattr('name', 'search', ('\\.x86_64\\.rpm$' if ansible_facts['architecture'] == 'x86_64' else '\\.aarch64\\.rpm$')) | map(attribute='browser_download_url') | first) }}"
+    state: present
+    disable_gpg_check: yes
+  when:
+    - handy_check.rc != 0
+    - ansible_facts['os_family'] == 'RedHat'
+  tags: [packages, handy]
+
+- name: Install Handy (.deb on Debian / Ubuntu)
+  ansible.builtin.apt:
+    deb: "{{ (handy_release.json.assets | selectattr('name', 'search', ('amd64\\.deb$' if ansible_facts['architecture'] == 'x86_64' else 'arm64\\.deb$')) | map(attribute='browser_download_url') | first) }}"
+    state: present
+  when:
+    - handy_check.rc != 0
+    - ansible_facts['os_family'] == 'Debian'
+  tags: [packages, handy]
+
+- name: Ensure autostart directory exists
+  ansible.builtin.file:
+    path: "{{ target_home }}/.config/autostart"
+    state: directory
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0755"
+  tags: [packages, handy]
+
+- name: Configure Handy autostart on user login
+  ansible.builtin.copy:
+    dest: "{{ target_home }}/.config/autostart/handy.desktop"
+    content: |
+      [Desktop Entry]
+      Type=Application
+      Name=Handy
+      Comment=Offline speech-to-text transcription
+      Exec=handy --start-hidden
+      Icon=handy
+      Terminal=false
+      Categories=Utility;
+      X-GNOME-Autostart-enabled=true
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0644"
+  tags: [packages, handy]
+
 # ── 3. FLATPAK PACKAGES ──────────────────────────────────────────────────
 
 - name: Add Flathub repository
