@@ -2,6 +2,9 @@ I will record changes to this file just so i don't need to look at commit histor
 
 # Changelog
 
+2026-10-02:
+- Exposed the Logseq vault at `~/MyNotes` on macOS (same path as Linux, where it comes from Syncthing) via a symlink to `NAS/SyncFolder/MyLogseq`, configured in `ansible/vars/Darwin.yml` and created by `ansible/tasks/mac_mounts.yml`.
+
 2026-09-19:
 - Added automated workspace repository cloning
 

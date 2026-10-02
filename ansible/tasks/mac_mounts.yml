@@ -11,6 +11,12 @@
     state: directory
     mode: "0755"
 
+- name: Expose Logseq vault at ~/MyNotes (same path as Linux)
+  ansible.builtin.file:
+    src: "{{ my_notes_symlink_target }}"
+    dest: "{{ ansible_facts.env.HOME }}/MyNotes"
+    state: link
+
 - name: Ensure Application Support directory for deployed scripts exists
   ansible.builtin.file:
     path: "{{ ansible_facts.env.HOME }}/Library/Application Support/os_bootstrap"

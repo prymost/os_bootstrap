@@ -35,3 +35,7 @@ nas_host: "HomeCloud"
 nas_share: "SharedLand"
 nas_user: "Boris"
 nas_mount_path: "NAS"
+
+# Linux exposes the Logseq vault at ~/MyNotes via Syncthing. On macOS the
+# same vault lives inside the NAS SMB mount, so expose it at the same path.
+my_notes_symlink_target: "{{ nas_mount_path }}/SyncFolder/MyLogseq"
