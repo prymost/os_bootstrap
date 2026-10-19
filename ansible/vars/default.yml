@@ -17,7 +17,6 @@ common_cli_packages:
   - age
   - stow
   - flatpak
-  - syncthing
   - ark
   - zip
   - unzip
@@ -55,6 +54,7 @@ purged_os_packages:
 # BorgBackup Variables
 borg_repository: "{{ nas_backup_base_dir }}/borg-repo"
 borg_backup_sources:
+  - "{{ target_home }}/MyNotes"
   - "/media/boris/DataDrive/Documents"
   - "/media/boris/DataDrive/all Nata"
   - "/media/boris/DataDrive/Music"

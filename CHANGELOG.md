@@ -2,6 +2,11 @@ I will record changes to this file just so i don't need to look at commit histor
 
 # Changelog
 
+2026-10-18:
+- Decommissioned Syncthing provisioning (`ansible/tasks/syncthing.yml`, `ansible/files/configure-syncthing.py`, `ansible/local.yml`, and `syncthing` package in `ansible/vars/default.yml`) following migration to official Obsidian Sync.
+- Removed macOS network mount symlink task and variable for `~/MyNotes` in `ansible/tasks/mac_mounts.yml` and `ansible/vars/Darwin.yml`, allowing the Work MacBook Pro to maintain an independent local vault synced via Obsidian Sync.
+- Added `{{ target_home }}/MyNotes` to `borg_backup_sources` in `ansible/vars/default.yml` so automated daily BorgBackup archives the Obsidian vault to the Synology NAS.
+
 2026-10-02:
 - Exposed the Logseq vault at `~/MyNotes` on macOS (same path as Linux, where it comes from Syncthing) via a symlink to `NAS/SyncFolder/MyLogseq`, configured in `ansible/vars/Darwin.yml` and created by `ansible/tasks/mac_mounts.yml`.
 

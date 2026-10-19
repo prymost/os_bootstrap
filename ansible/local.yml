@@ -47,9 +47,6 @@
     - name: Restore encrypted secrets from NAS if missing
       ansible.builtin.include_tasks: tasks/restore_secrets.yml
 
-    - name: Configure Syncthing synchronization
-      ansible.builtin.include_tasks: tasks/syncthing.yml
-
     - name: Configure system update automation
       ansible.builtin.include_tasks: tasks/system_updates.yml
 
