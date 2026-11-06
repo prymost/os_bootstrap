@@ -92,3 +92,6 @@
 
     - name: Configure macOS daily update automation
       ansible.builtin.include_tasks: tasks/mac_updates.yml
+
+    - name: Configure macOS daily Google Drive backup
+      ansible.builtin.include_tasks: tasks/mac_backup.yml

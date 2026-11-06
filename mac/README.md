@@ -40,6 +40,16 @@ To trigger a remount manually:
 launchctl kickstart "gui/$(id -u)/com.user.nas.mount"
 ```
 
+## Google Drive backup
+
+Ansible installs a daily LaunchAgent. It creates changed-only ZIPs in `~/Google Drive/My Drive/os_bootstrap_backups`, keeping the five newest.
+
+Run manually with `launchctl kickstart "gui/$(id -u)/com.user.os_bootstrap.backup"`.
+
+## Restore
+
+Run `./mac/setup/restore.sh` from the repository root. It selects the newest valid archive. Existing files or links are listed and require confirmation before replacement.
+
 ## 💻 Compatibility
 
 - ✅ **macOS 15.5 (Sequoia)** - Fully tested and compatible
@@ -49,4 +59,4 @@ launchctl kickstart "gui/$(id -u)/com.user.nas.mount"
 ## 🔄 Maintenance
 
 - **`update_tools.sh`** - Update Homebrew packages and Brewfile
-- **`backup.sh`** - Backup current configuration
+- **`backup.sh`** - Back up selected configuration to Google Drive (see above)

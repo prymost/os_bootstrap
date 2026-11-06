@@ -1,0 +1,98 @@
+---
+- name: Inspect Google Drive home link
+  ansible.builtin.stat:
+    path: "{{ ansible_facts.env.HOME }}/Google Drive"
+    follow: false
+  register: mac_google_drive_link
+
+- name: Find Google Drive for desktop folders
+  ansible.builtin.find:
+    paths: "{{ ansible_facts.env.HOME }}/Library/CloudStorage"
+    patterns: "GoogleDrive-*"
+    file_type: directory
+    recurse: false
+  register: mac_google_drive_folders
+  when: not mac_google_drive_link.stat.islnk | default(false)
+
+- name: Select canonical Google Drive folder
+  ansible.builtin.set_fact:
+    mac_google_drive_candidates: "{{ mac_google_drive_folders.files | default([]) | selectattr('path', 'match', '^.*/GoogleDrive-[^/(]+$') | map(attribute='path') | list }}"
+
+- name: Require one Google Drive for desktop folder when link is absent
+  ansible.builtin.assert:
+    that:
+      - mac_google_drive_link.stat.islnk | default(false) or mac_google_drive_candidates | length == 1
+    fail_msg: >-
+      Cannot create ~/Google Drive: expected exactly one canonical Google Drive folder
+      under ~/Library/CloudStorage. Existing non-symlink paths are not replaced.
+
+- name: Link Google Drive into the home directory
+  ansible.builtin.file:
+    src: "{{ mac_google_drive_link.stat.lnk_source if mac_google_drive_link.stat.islnk | default(false) else mac_google_drive_candidates[0] }}"
+    dest: "{{ ansible_facts.env.HOME }}/Google Drive"
+    state: link
+    force: false
+
+- name: Ensure backup script directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/Library/Application Support/os_bootstrap"
+    state: directory
+    mode: "0755"
+
+- name: Deploy macOS backup script
+  ansible.builtin.copy:
+    src: "{{ playbook_dir | dirname }}/mac/backup.sh"
+    dest: "{{ ansible_facts.env.HOME }}/Library/Application Support/os_bootstrap/backup.sh"
+    mode: "0755"
+
+- name: Ensure backup LaunchAgent and log directories exist
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/Library/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - LaunchAgents
+    - Logs
+
+- name: Deploy macOS backup LaunchAgent plist
+  ansible.builtin.template:
+    src: "{{ playbook_dir | dirname }}/mac/configs/com.user.os_bootstrap.backup.plist"
+    dest: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.os_bootstrap.backup.plist"
+    mode: "0644"
+  vars:
+    SCRIPT_PATH: "{{ ansible_facts.env.HOME }}/Library/Application Support/os_bootstrap/backup.sh"
+    LOG_PATH: "{{ ansible_facts.env.HOME }}/Library/Logs/os_bootstrap_backup.log"
+  register: mac_backup_plist
+
+- name: Get current user UID for backup agent
+  ansible.builtin.command: id -u
+  register: mac_backup_uid
+  changed_when: false
+
+- name: Check whether backup agent is loaded
+  ansible.builtin.command:
+    argv:
+      - launchctl
+      - print
+      - "gui/{{ mac_backup_uid.stdout | trim }}/com.user.os_bootstrap.backup"
+  register: mac_backup_status
+  failed_when: false
+  changed_when: false
+
+- name: Unload backup agent when its plist changes
+  ansible.builtin.command:
+    argv:
+      - launchctl
+      - bootout
+      - "gui/{{ mac_backup_uid.stdout | trim }}"
+      - "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.os_bootstrap.backup.plist"
+  when: mac_backup_plist.changed and mac_backup_status.rc == 0
+
+- name: Load backup agent
+  ansible.builtin.command:
+    argv:
+      - launchctl
+      - bootstrap
+      - "gui/{{ mac_backup_uid.stdout | trim }}"
+      - "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.os_bootstrap.backup.plist"
+  when: mac_backup_plist.changed or mac_backup_status.rc != 0
