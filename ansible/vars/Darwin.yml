@@ -14,6 +14,8 @@ darwin_brew_packages:
   - direnv
   - kubectl
   - podman
+  - gh
+  - bitwarden-cli
   # Package manager helper
   - stow
   # Shell utilities

@@ -1,21 +1,35 @@
 # Brewfile for macOS Setup
 # Install with: brew bundle install
 
+# GNU Utilities
+brew "coreutils"
+brew "gnu-sed"
+brew "gnu-tar"
+brew "gnu-indent"
+brew "gnu-which"
+brew "findutils"
+
 # CLI Tools
 brew "git"
 brew "jq"
 brew "direnv"
+brew "kubectl"
 brew "podman"
+brew "gh"
+brew "bitwarden-cli"
 
-# Terminal Tools
+# Package manager helper
+brew "stow"
+
+# Terminal & Shell Tools
 brew "zsh"
 brew "zsh-autosuggestions"
+brew "bash"
 
 # Desktop Applications
 cask "visual-studio-code"
 cask "brave-browser"
+cask "obsidian"
 cask "rectangle"
 cask "iterm2"
-
-# macOS-specific
-brew "bash"
+cask "bruno"

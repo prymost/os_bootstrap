@@ -2,6 +2,7 @@
 
 # Target User & Base Paths
 target_user: "boris"
+target_uid: "1000"
 target_home: "{{ ansible_user_dir | default('/home/' + target_user) }}"
 nas_backup_base_dir: "{{ target_home }}/Backup"
 
@@ -20,7 +21,7 @@ common_cli_packages:
   - ark
   - zip
   - unzip
-
+  - gh
 
 common_dev_packages:
   - zsh
@@ -80,6 +81,7 @@ secrets_backup_targets:
   - ".gitconfig"
   - ".gnupg"
   - ".zsh_history"
+  - ".config/gh"
   - "ansible/vars/secrets.yml"
 secrets_backup_required_targets:
   - "ansible/vars/secrets.yml"
@@ -97,7 +99,4 @@ workspace_repositories:
   - name: ai_stuff
     repo: "git@github.com:prymost/ai_stuff.git"
     dest: "{{ workspace_dir }}/ai_stuff"
-
-
-
 

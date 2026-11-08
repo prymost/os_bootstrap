@@ -27,6 +27,7 @@
 
     - name: Configure repositories
       ansible.builtin.include_tasks: tasks/repositories.yml
+      tags: packages
 
     - name: Provision system packages and package managers
       ansible.builtin.import_tasks: tasks/packages.yml
@@ -52,6 +53,10 @@
 
     - name: Configure backup automation
       ansible.builtin.include_tasks: tasks/backup.yml
+
+    - name: Configure and verify GitHub CLI
+      ansible.builtin.include_tasks: tasks/github.yml
+      tags: github
 
     - name: Provision workspace repositories
       ansible.builtin.include_tasks: tasks/workspace.yml
@@ -95,3 +100,7 @@
 
     - name: Configure macOS daily Google Drive backup
       ansible.builtin.include_tasks: tasks/mac_backup.yml
+
+    - name: Provision workspace repositories
+      ansible.builtin.include_tasks: tasks/workspace.yml
+      tags: workspace

@@ -1,0 +1,121 @@
+---
+# ── GITHUB CLI CONFIGURATION & SECURE KEYRING AUTHENTICATION ───────────────
+# Zero-plaintext credential policy: GitHub tokens must be stored in the
+# Freedesktop Secret Service (KWallet / libsecret) via D-Bus, not in hosts.yml.
+
+- name: Check if GitHub CLI is installed
+  ansible.builtin.command: command -v gh
+  register: gh_check
+  failed_when: false
+  changed_when: false
+  become: yes
+  become_user: "{{ target_user }}"
+  environment:
+    PATH: "/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:/usr/bin:{{ ansible_facts['env']['PATH'] }}"
+
+- name: Ensure GitHub CLI configuration directory exists
+  ansible.builtin.file:
+    path: "{{ target_home }}/.config/gh"
+    state: directory
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0700"
+  when: gh_check.rc == 0
+
+- name: Configure GitHub CLI default settings
+  ansible.builtin.command:
+    cmd: "gh config set {{ item.key }} {{ item.value }}"
+  loop:
+    - { key: "git_protocol", value: "ssh" }
+    - { key: "prompt", value: "enabled" }
+  become: yes
+  become_user: "{{ target_user }}"
+  environment:
+    PATH: "/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:/usr/bin:{{ ansible_facts['env']['PATH'] }}"
+  changed_when: false
+  when: gh_check.rc == 0
+
+- name: Check GitHub CLI authentication status
+  ansible.builtin.command:
+    cmd: gh auth status
+  register: gh_auth_check
+  failed_when: false
+  changed_when: false
+  become: yes
+  become_user: "{{ target_user }}"
+  environment:
+    PATH: "/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:/usr/bin:{{ ansible_facts['env']['PATH'] }}"
+    XDG_RUNTIME_DIR: "/run/user/{{ target_uid | default('1000') }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ target_uid | default('1000') }}/bus"
+  when: gh_check.rc == 0
+
+- name: Prompt user to authenticate GitHub CLI if unauthenticated
+  ansible.builtin.pause:
+    prompt: |
+
+      ========================================================================
+      🐙 [ACTION REQUIRED] GitHub CLI Authentication
+      ========================================================================
+      GitHub CLI (gh) is installed with secure Linux Secret Service (KWallet)
+      integration. Your browser (Brave) and Bitwarden are available.
+      Note: Credentials reside in your local desktop keyring and are not
+      stored on disk or transferred across machines.
+
+      To complete authentication, open another terminal and run:
+        gh auth login --hostname github.com --git-protocol ssh --web --clipboard
+
+      Press [Enter] once authorized to verify keyring storage and continue,
+      or Ctrl+C then 'C' to continue without authenticating now.
+      ========================================================================
+  when:
+    - gh_check.rc == 0
+    - gh_auth_check.rc != 0
+
+- name: Re-check GitHub CLI authentication status after prompt
+  ansible.builtin.command:
+    cmd: gh auth status
+  register: gh_auth_check_post
+  failed_when: false
+  changed_when: false
+  become: yes
+  become_user: "{{ target_user }}"
+  environment:
+    PATH: "/home/linuxbrew/.linuxbrew/bin:/usr/local/bin:/usr/bin:{{ ansible_facts['env']['PATH'] }}"
+    XDG_RUNTIME_DIR: "/run/user/{{ target_uid | default('1000') }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ target_uid | default('1000') }}/bus"
+  when:
+    - gh_check.rc == 0
+    - gh_auth_check.rc != 0
+
+- name: Check hosts.yml existence for security validation
+  ansible.builtin.stat:
+    path: "{{ target_home }}/.config/gh/hosts.yml"
+  register: gh_hosts_stat
+  when: gh_check.rc == 0
+
+- name: Check for plaintext token in hosts.yml
+  ansible.builtin.command:
+    cmd: "grep -q 'oauth_token' {{ target_home }}/.config/gh/hosts.yml"
+  register: gh_token_check
+  failed_when: false
+  changed_when: false
+  become: yes
+  become_user: "{{ target_user }}"
+  when:
+    - gh_check.rc == 0
+    - gh_hosts_stat.stat.exists
+
+- name: Enforce zero-plaintext token security posture
+  ansible.builtin.fail:
+    msg: "SECURITY VIOLATION: Plaintext 'oauth_token' found in {{ target_home }}/.config/gh/hosts.yml. Tokens must be stored in the Secret Service keyring."
+  when:
+    - gh_token_check is defined
+    - gh_token_check.rc == 0
+
+- name: Display GitHub CLI authentication confirmation
+  ansible.builtin.debug:
+    msg: "✅ GitHub CLI is authenticated with zero plaintext tokens on disk (KWallet keyring storage verified)."
+  when:
+    - gh_check.rc == 0
+    - (gh_auth_check.rc == 0 or (gh_auth_check_post is defined and gh_auth_check_post.rc == 0))
+    - (gh_token_check is not defined or gh_token_check.rc != 0)

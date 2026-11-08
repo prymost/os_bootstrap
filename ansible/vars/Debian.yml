@@ -12,6 +12,8 @@ os_cli_dependencies:
   - wl-clipboard
   - nfs-common
   - cifs-utils
+  - libsecret-1-0
+  - libsecret-tools
 
 # OS-Specific NAS Mounts (SMB/CIFS for Pop!_OS)
 nas_mounts:

@@ -79,6 +79,7 @@ get_config_targets() {
         echo ".gitconfig"
         echo ".gnupg"
         echo ".zsh_history"
+        echo ".config/gh"
         echo "ansible/vars/secrets.yml"
     fi
 }
@@ -613,21 +614,56 @@ cmd_restore() {
 
     # Restore home targets safely preserving directory hierarchies
     if [[ -d "${tmp_extract}/home" ]]; then
-        shopt -s dotglob
-        for item in "${tmp_extract}/home"/*; do
-            [[ -e "$item" || -L "$item" ]] || continue
-            local base_name
-            base_name=$(basename "$item")
-            local target_dest="${HOME_DIR}/${base_name}"
+        local restored_targets=()
+        for item in "${TARGETS[@]}"; do
+            local staged_item=""
+            local target_dest=""
 
-            if [[ -e "$target_dest" || -L "$target_dest" ]]; then
-                local backup_suffix=".bak.$(date +%s)"
-                log_warn "Existing '${target_dest}' found. Renaming to '${base_name}${backup_suffix}'"
-                mv "$target_dest" "${target_dest}${backup_suffix}"
+            if [[ "$item" =~ ^\. ]]; then
+                staged_item="${tmp_extract}/home/${item}"
+                target_dest="${HOME_DIR}/${item}"
+            elif [[ "$item" =~ ^/ ]]; then
+                staged_item="${tmp_extract}/home/${item}"
+                target_dest="${item}"
+            else
+                continue
             fi
 
+            if [[ -e "$staged_item" || -L "$staged_item" ]]; then
+                if [[ -e "$target_dest" || -L "$target_dest" ]]; then
+                    local backup_suffix=".bak.$(date +%s)"
+                    log_warn "Existing '${target_dest}' found. Renaming to '${target_dest}${backup_suffix}'"
+                    mv "$target_dest" "${target_dest}${backup_suffix}"
+                fi
+
+                mkdir -p "$(dirname "$target_dest")"
+                cp -a "$staged_item" "$target_dest"
+                log_success "Restored: ${target_dest}"
+                restored_targets+=("$item")
+            fi
+        done
+
+        # Fallback for any legacy/extra top-level entries in archive not explicitly in TARGETS
+        shopt -s dotglob
+        for legacy_item in "${tmp_extract}/home"/*; do
+            [[ -e "$legacy_item" || -L "$legacy_item" ]] || continue
+            local base_name
+            base_name=$(basename "$legacy_item")
+            # Never rename ~/.config as a whole during fallback restore
+            if [[ "$base_name" == ".config" ]]; then
+                continue
+            fi
+            if [[ " ${restored_targets[*]} " =~ [[:space:]]${base_name}(/|[[:space:]]) ]]; then
+                continue
+            fi
+            local target_dest="${HOME_DIR}/${base_name}"
+            if [[ -e "$target_dest" || -L "$target_dest" ]]; then
+                local backup_suffix=".bak.$(date +%s)"
+                log_warn "Existing '${target_dest}' found. Renaming to '${target_dest}${backup_suffix}'"
+                mv "$target_dest" "${target_dest}${backup_suffix}"
+            fi
             mkdir -p "$(dirname "$target_dest")"
-            cp -a "$item" "$target_dest"
+            cp -a "$legacy_item" "$target_dest"
             log_success "Restored: ${target_dest}"
         done
         shopt -u dotglob
@@ -674,11 +710,16 @@ cmd_restore() {
         [[ -f "${HOME_DIR}/.kube/config" ]] && chmod 600 "${HOME_DIR}/.kube/config" 2>/dev/null || true
     fi
 
+    if [[ -d "${HOME_DIR}/.config/gh" ]]; then
+        chmod 700 "${HOME_DIR}/.config/gh"
+        find "${HOME_DIR}/.config/gh" -type f -exec chmod 600 {} + 2>/dev/null || true
+    fi
+
     [[ -f "${REPO_ROOT}/ansible/vars/secrets.yml" ]] && chmod 600 "${REPO_ROOT}/ansible/vars/secrets.yml" 2>/dev/null || true
 
     # Restore SELinux contexts on Fedora / RHEL
     if command -v restorecon &>/dev/null; then
-        restorecon -R "${HOME_DIR}/.ssh" "${HOME_DIR}/.gnupg" "${HOME_DIR}/.kube" 2>/dev/null || true
+        restorecon -R "${HOME_DIR}/.ssh" "${HOME_DIR}/.gnupg" "${HOME_DIR}/.kube" "${HOME_DIR}/.config/gh" 2>/dev/null || true
     fi
 
     # Post-restore verification of required targets

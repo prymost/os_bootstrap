@@ -95,7 +95,7 @@
     force: no
 
 - name: Check if podman is installed
-  ansible.builtin.command: which podman
+  ansible.builtin.command: command -v podman
   register: podman_check
   failed_when: false
   changed_when: false
@@ -104,3 +104,27 @@
   ansible.builtin.command:
     cmd: "podman build --pull -t pibox:latest {{ playbook_dir | dirname }}/linux/pibox"
   when: podman_check.rc == 0
+
+# ── 6. GITHUB CLI CONFIGURATION ──────────────────────────────────────────
+
+- name: Check if GitHub CLI is installed
+  ansible.builtin.command: command -v gh
+  register: gh_check
+  failed_when: false
+  changed_when: false
+
+- name: Ensure GitHub CLI configuration directory exists
+  ansible.builtin.file:
+    path: "{{ ansible_facts.env.HOME }}/.config/gh"
+    state: directory
+    mode: '0700'
+  when: gh_check.rc == 0
+
+- name: Configure GitHub CLI default settings
+  ansible.builtin.command:
+    cmd: "gh config set {{ item.key }} {{ item.value }}"
+  loop:
+    - { key: "git_protocol", value: "ssh" }
+    - { key: "prompt", value: "enabled" }
+  changed_when: false
+  when: gh_check.rc == 0

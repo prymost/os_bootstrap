@@ -11,6 +11,7 @@ os_cli_dependencies:
   - wl-clipboard
   - xcb-util-cursor
   - nfs-utils
+  - libsecret
 
 # OS-Specific NAS Mounts (NFS for Fedora)
 nas_mounts:
