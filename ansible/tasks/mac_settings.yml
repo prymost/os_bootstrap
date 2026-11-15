@@ -19,3 +19,69 @@
     - "Finder"
     - "SystemUIServer"
   changed_when: false
+
+# ── PREDATOR MONITOR WAKE INPUT SWITCH (native log stream + m1ddc) ──────
+# With OSD Auto Source = Off, waking macOS automatically switches the
+# Predator XB273K GP to DisplayPort-2 without the 10-15s port scan.
+
+- name: Ensure Application Support and LaunchAgents directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ ansible_facts.env.HOME }}/Library/Application Support/os_bootstrap"
+    - "{{ ansible_facts.env.HOME }}/Library/LaunchAgents"
+
+- name: Deploy Predator wake input switch script (macOS)
+  ansible.builtin.copy:
+    src: "{{ playbook_dir | dirname }}/mac/predator_wake_input.sh"
+    dest: "{{ ansible_facts.env.HOME }}/Library/Application Support/os_bootstrap/predator_wake_input.sh"
+    mode: "0755"
+  register: mac_predator_wake_script
+
+- name: Deploy Predator wake LaunchAgent plist
+  ansible.builtin.template:
+    src: "{{ playbook_dir | dirname }}/mac/configs/com.user.predator.wake.plist"
+    dest: "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.predator.wake.plist"
+    mode: "0644"
+  vars:
+    SCRIPT_PATH: "{{ ansible_facts.env.HOME }}/Library/Application Support/os_bootstrap/predator_wake_input.sh"
+    LOG_PATH: "{{ ansible_facts.env.HOME }}/Library/Logs/predator_wake.log"
+    PREDATOR_MODEL: "{{ predator_monitor_model }}"
+    PREDATOR_INPUT_VCP: "{{ predator_mac_input_vcp }}"
+  register: mac_predator_wake_plist
+
+- name: Get current user UID
+  ansible.builtin.command: id -u
+  register: mac_predator_user_uid
+  changed_when: false
+
+- name: Check if Predator wake LaunchAgent is currently loaded
+  ansible.builtin.command:
+    cmd: launchctl print "gui/{{ mac_predator_user_uid.stdout.strip() }}/com.user.predator.wake"
+  register: mac_predator_wake_status
+  failed_when: false
+  changed_when: false
+
+- name: Unload previous Predator wake LaunchAgent if plist changed
+  ansible.builtin.shell:
+    cmd: |
+      launchctl bootout "gui/{{ mac_predator_user_uid.stdout.strip() }}" "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.predator.wake.plist" 2>/dev/null || true
+      for _ in 1 2 3 4 5; do
+        launchctl print "gui/{{ mac_predator_user_uid.stdout.strip() }}/com.user.predator.wake" >/dev/null 2>&1 || break
+        sleep 0.5
+      done
+  when: mac_predator_wake_plist.changed and mac_predator_wake_status.rc == 0
+  changed_when: false
+
+- name: Load Predator wake LaunchAgent
+  ansible.builtin.shell:
+    cmd: launchctl bootstrap "gui/{{ mac_predator_user_uid.stdout.strip() }}" "{{ ansible_facts.env.HOME }}/Library/LaunchAgents/com.user.predator.wake.plist"
+  when: mac_predator_wake_plist.changed or mac_predator_wake_status.rc != 0
+
+- name: Restart Predator wake LaunchAgent if only script changed
+  ansible.builtin.shell:
+    cmd: launchctl kickstart -k "gui/{{ mac_predator_user_uid.stdout.strip() }}/com.user.predator.wake"
+  when: mac_predator_wake_script.changed and not mac_predator_wake_plist.changed and mac_predator_wake_status.rc == 0
+  changed_when: false

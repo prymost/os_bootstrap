@@ -4,3 +4,69 @@
   become: yes
   become_user: boris
   when: ansible_facts['os_family'] == 'RedHat'
+
+# ── PREDATOR MONITOR WAKE INPUT SWITCH (DDC/CI) ──────────────────────────
+# With OSD Auto Source = Off, waking Linux automatically switches the
+# Predator XB273K GP back to DisplayPort-1 without the 10-15s port scan.
+
+- name: Ensure ~/.local/bin and ~/.config/systemd/user directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0755"
+  loop:
+    - "{{ target_home }}/.local/bin"
+    - "{{ target_home }}/.config/systemd/user"
+
+- name: Deploy Predator wake input switch script
+  ansible.builtin.copy:
+    src: files/predator-wake-input.sh
+    dest: "{{ target_home }}/.local/bin/predator-wake-input"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0755"
+  register: predator_wake_script
+
+- name: Create predator-wake-input user systemd service unit
+  ansible.builtin.copy:
+    dest: "{{ target_home }}/.config/systemd/user/predator-wake-input.service"
+    content: |
+      [Unit]
+      Description=Switch Acer Predator XB273K GP to DisplayPort-1 on wake from sleep
+      After=graphical-session.target
+
+      [Service]
+      Type=simple
+      Environment="PREDATOR_MODEL={{ predator_monitor_model }}"
+      Environment="PREDATOR_INPUT_VCP={{ predator_linux_input_vcp }}"
+      ExecStart=%h/.local/bin/predator-wake-input
+      Restart=on-failure
+      RestartSec=5
+
+      [Install]
+      WantedBy=default.target
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: "0644"
+  register: predator_wake_unit
+
+- name: Check if user systemd bus is active
+  ansible.builtin.stat:
+    path: "/run/user/{{ target_uid }}/bus"
+  register: user_systemd_bus
+
+- name: Enable and start predator-wake-input user systemd service
+  ansible.builtin.systemd:
+    name: predator-wake-input.service
+    scope: user
+    enabled: yes
+    state: "{{ 'restarted' if (predator_wake_script.changed or predator_wake_unit.changed) else 'started' }}"
+    daemon_reload: yes
+  become: yes
+  become_user: "{{ target_user }}"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ target_uid }}"
+    DBUS_SESSION_BUS_ADDRESS: "unix:path=/run/user/{{ target_uid }}/bus"
+  when: user_systemd_bus.stat.exists

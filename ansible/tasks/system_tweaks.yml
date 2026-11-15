@@ -68,3 +68,29 @@
     enabled: yes
     state: started
 
+# ── 4. DDC/CI MONITOR CONTROL PERMISSIONS ────────────────────────────────
+
+- name: Ensure i2c group exists
+  ansible.builtin.group:
+    name: i2c
+    state: present
+
+- name: Add user to i2c group for unprivileged ddcutil access
+  ansible.builtin.user:
+    name: "{{ target_user }}"
+    groups: i2c
+    append: yes
+
+- name: Ensure i2c-dev kernel module is loaded at boot
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/i2c-dev.conf
+    content: "i2c-dev\n"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Load i2c-dev kernel module immediately
+  community.general.modprobe:
+    name: i2c-dev
+    state: present
+

@@ -22,6 +22,7 @@ common_cli_packages:
   - zip
   - unzip
   - gh
+  - ddcutil
 
 common_dev_packages:
   - zsh
@@ -99,4 +100,8 @@ workspace_repositories:
   - name: ai_stuff
     repo: "git@github.com:prymost/ai_stuff.git"
     dest: "{{ workspace_dir }}/ai_stuff"
+
+# Predator XB273K GP auto-input switch on wake (with OSD Auto Source = Off)
+predator_monitor_model: "XB273K GP"
+predator_linux_input_vcp: "0x0f"  # DisplayPort-1
 

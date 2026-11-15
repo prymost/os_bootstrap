@@ -17,6 +17,7 @@ brew "kubectl"
 brew "podman"
 brew "gh"
 brew "bitwarden-cli"
+brew "m1ddc"
 
 # Package manager helper
 brew "stow"
