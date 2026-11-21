@@ -4,11 +4,7 @@ set -u
 PREDATOR_MODEL="${PREDATOR_MODEL:-XB273K GP}"
 PREDATOR_INPUT_VCP="${PREDATOR_INPUT_VCP:-16}"
 
-if [[ "$PREDATOR_INPUT_VCP" =~ ^0[xX][0-9a-fA-F]+$ ]]; then
-    printf -v TARGET_INPUT_DEC '%d' "$PREDATOR_INPUT_VCP"
-elif [[ "$PREDATOR_INPUT_VCP" =~ ^[0-9]+$ ]]; then
-    TARGET_INPUT_DEC=$((10#$PREDATOR_INPUT_VCP))
-else
+if ! [[ "$PREDATOR_INPUT_VCP" =~ ^0[xX][0-9a-fA-F]+$|^[0-9]+$ ]]; then
     echo "Invalid PREDATOR_INPUT_VCP: '$PREDATOR_INPUT_VCP'" >&2
     exit 1
 fi
@@ -31,10 +27,10 @@ switch_to_input() {
     fi
 
     local display_index=""
-    local current_input=""
+    local current_lum=""
     local err_output=""
     local attempt
-    for attempt in 1 2 3; do
+    for attempt in 1 2 3 4; do
         # Re-query display list inside retry loop in case display enumeration finishes after T+2s
         display_index="$(m1ddc display list 2>/dev/null | grep -F -- "$PREDATOR_MODEL" | sed -nE 's/^\[([0-9]+)\].*/\1/p' | head -n 1)"
         local -a m1ddc_args=()
@@ -43,10 +39,15 @@ switch_to_input() {
             m1ddc_args=(display "$display_index")
             target_desc="display $display_index ($PREDATOR_MODEL)"
         fi
-        current_input="$(m1ddc ${m1ddc_args[@]+"${m1ddc_args[@]}"} get input 2>/dev/null | tr -d '[:space:]')"
-        if [[ "$current_input" =~ ^[0-9]+$ ]] && [ "$((10#$current_input))" -eq "$TARGET_INPUT_DEC" ]; then
-            echo "$target_desc already on input $PREDATOR_INPUT_VCP (attempt $attempt), skipping switch"
+        current_lum="$(m1ddc ${m1ddc_args[@]+"${m1ddc_args[@]}"} get luminance 2>/dev/null | tr -d '[:space:]')"
+        if [[ "$current_lum" =~ ^[0-9]+$ ]] && [ "$((10#$current_lum))" -ge 0 ] && [ "$((10#$current_lum))" -le 100 ]; then
+            echo "$target_desc already active (luminance=$current_lum, attempt $attempt), skipping switch"
             return 0
+        fi
+        # On attempt 1, give normal DisplayPort wake until attempt 2 (~3s) before forcing set input.
+        if [ "$attempt" -eq 1 ]; then
+            sleep 1
+            continue
         fi
         if err_output="$(m1ddc ${m1ddc_args[@]+"${m1ddc_args[@]}"} set input "$PREDATOR_INPUT_VCP" 2>&1 >/dev/null)"; then
             echo "Switched $target_desc to input $PREDATOR_INPUT_VCP (attempt $attempt)"

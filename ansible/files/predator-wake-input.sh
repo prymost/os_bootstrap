@@ -4,39 +4,40 @@ set -u
 PREDATOR_MODEL="${PREDATOR_MODEL:-XB273K GP}"
 PREDATOR_INPUT_VCP="${PREDATOR_INPUT_VCP:-0x0f}"
 
-if [[ "$PREDATOR_INPUT_VCP" =~ ^0[xX][0-9a-fA-F]+$ ]]; then
-    printf -v TARGET_INPUT_DEC '%d' "$PREDATOR_INPUT_VCP"
-elif [[ "$PREDATOR_INPUT_VCP" =~ ^[0-9]+$ ]]; then
-    TARGET_INPUT_DEC=$((10#$PREDATOR_INPUT_VCP))
-else
+if ! [[ "$PREDATOR_INPUT_VCP" =~ ^0[xX][0-9a-fA-F]+$|^[0-9]+$ ]]; then
     echo "Invalid PREDATOR_INPUT_VCP: '$PREDATOR_INPUT_VCP'" >&2
     exit 1
 fi
 
 switch_to_input() {
-    # Give the GPU / I2C bus a moment to finish resuming, then retry if PowerDevil holds the flock.
-    sleep 1
+    # Give GPU / DisplayPort link-training a moment to wake the monitor naturally, then retry if PowerDevil holds the flock.
+    sleep 2
     local err_output=""
     local current_raw=""
-    local current_token=""
-    local current_dec=""
+    local power_token=""
+    local power_dec=""
     local attempt
     for attempt in 1 2 3 4; do
-        if current_raw="$(ddcutil --model "$PREDATOR_MODEL" getvcp 60 --brief 2>/dev/null)"; then
-            current_token="$(printf '%s\n' "$current_raw" | sed -nE 's/^VCP[[:space:]]+60[[:space:]]+[A-Z]+[[:space:]]+(0?[xX][0-9a-fA-F]+|[0-9]+)[[:space:]]*$/\1/p' | head -n 1)"
-            if [[ "$current_token" =~ ^[xX][0-9a-fA-F]+$ ]]; then
-                printf -v current_dec '%d' "0$current_token"
-            elif [[ "$current_token" =~ ^0[xX][0-9a-fA-F]+$ ]]; then
-                printf -v current_dec '%d' "$current_token"
-            elif [[ "$current_token" =~ ^[0-9]+$ ]]; then
-                current_dec=$((10#$current_token))
+        if current_raw="$(ddcutil --model "$PREDATOR_MODEL" getvcp d6 --brief 2>/dev/null)"; then
+            power_token="$(printf '%s\n' "$current_raw" | sed -nE 's/^VCP[[:space:]]+[dD]6[[:space:]]+[A-Z]+[[:space:]]+(0?[xX][0-9a-fA-F]+|[0-9]+)[[:space:]]*$/\1/p' | head -n 1)"
+            if [[ "$power_token" =~ ^[xX][0-9a-fA-F]+$ ]]; then
+                printf -v power_dec '%d' "0$power_token"
+            elif [[ "$power_token" =~ ^0[xX][0-9a-fA-F]+$ ]]; then
+                printf -v power_dec '%d' "$power_token"
+            elif [[ "$power_token" =~ ^[0-9]+$ ]]; then
+                power_dec=$((10#$power_token))
             else
-                current_dec=""
+                power_dec=""
             fi
-            if [ -n "$current_dec" ] && [ "$current_dec" -eq "$TARGET_INPUT_DEC" ]; then
-                echo "$PREDATOR_MODEL already on VCP 0x60=$PREDATOR_INPUT_VCP (attempt $attempt), skipping switch"
+            if [ -n "$power_dec" ] && [ "$power_dec" -eq 1 ]; then
+                echo "$PREDATOR_MODEL already active (VCP 0xD6=0x01, attempt $attempt), skipping switch"
                 return 0
             fi
+        fi
+        # On attempt 1, give normal DisplayPort wake until attempt 2 (~3s) before forcing setvcp 60.
+        if [ "$attempt" -eq 1 ]; then
+            sleep 1
+            continue
         fi
         if err_output="$(ddcutil --model "$PREDATOR_MODEL" setvcp 60 "$PREDATOR_INPUT_VCP" 2>&1 >/dev/null)"; then
             echo "Switched $PREDATOR_MODEL to VCP 0x60=$PREDATOR_INPUT_VCP (attempt $attempt)"
